@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <style>
+
+    :root {
+
+      --bg-color: #f4f7f6;
+
+      --text-color: #333;
+
+      --accent-color: #667eea;
+
+      --danger-color: #e74c3c;
+
+      --success-color: #2ecc71;
+
+      --warning-color: #f39c12;
+
+      --border-color: #e0e0e0;
+
+      --card-bg: #ffffff;
+
+    }
+
+    /* Dynamic Platform Colors injected via JS */
+
+    body.theme-facebook {
+
+      --accent-color: #1877f2;
+
+    }
+
+    body.theme-twitter {
+
+      --accent-color: #1da1f2;
+
+    }
+
+    * {
+
+      margin: 0;
+
+      padding: 0;
+
+      box-sizing: border-box;
+
+    }
+
+    body {
+
+      width: 380px;
+
+      min-height: 560px;
+
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+
+      background-color: var(--bg-color);
+
+      color: var(--text-color);
+
+      display: flex;
+
+      flex-direction: column;
+
+      padding: 20px;
+
+      overflow-x: hidden;
+
+    }
+
+    /* Header */
+
+    .app-header {
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      margin-bottom: 24px;
+
+      border-bottom: 2px solid var(--accent-color);
+
+      padding-bottom: 12px;
+
+    }
+
+    .app-title {
+
+      font-size: 20px;
+
+      font-weight: 800;
+
+      color: var(--accent-color);
+
+      letter-spacing: -0.5px;
+
+    }
+
+    /* Platform Tabs */
+
+    .platform-tabs {
+
+      display: flex;
+
+      border: 1px solid var(--border-color);
+
+      border-radius: 8px;
+
+      overflow: hidden;
+
+      margin-bottom: 24px;
+
+      background: var(--card-bg);
+
+    }
+
+    .tab-btn {
+
+      flex: 1;
+
+      padding: 10px;
+
+      border: none;
+
+      background: none;
+
+      font-size: 14px;
+
+      font-weight: 600;
+
+      color: #7f8c8d;
+
+      cursor: pointer;
+
+      transition: all 0.3s ease;
+
+    }
+
+    .tab-btn.active {
+
+      background-color: var(--accent-color);
+
+      color: white;
+
+    }
+
+    /* Cards/Sections */
+
+    .control-panel {
+
+      display: flex;
+
+      flex-direction: column;
+
+      gap: 20px;
+
+      flex: 1;
+
+    }
+
+    .card {
+
+      background: var(--card-bg);
+
+      border-radius: 12px;
+
+      padding: 16px;
+
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+      border: 1px solid var(--border-color);
+
+    }
+
+    .card-title {
+
+      font-size: 13px;
+
+      text-transform: uppercase;
+
+      letter-spacing: 1px;
+
+      color: #95a5a6;
+
+      margin-bottom: 16px;
+
+      font-weight: 700;
+
+    }
+
+    /* Buttons */
+
+    .action-btn {
+
+      width: 100%;
+
+      padding: 12px;
+
+      margin-bottom: 10px;
+
+      border: none;
+
+      border-radius: 8px;
+
+      font-size: 15px;
+
+      font-weight: 600;
+
+      cursor: pointer;
+
+      transition: all 0.2s ease;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      gap: 8px;
+
+    }
+
+    .action-btn.primary {
+
+      background-color: var(--accent-color);
+
+      color: white;
+
+    }
+
+    .action-btn.primary:hover {
+
+      filter: brightness(1.1);
+
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+
+    }
+
+    .action-btn.secondary {
+
+      background-color: #f8f9fa;
+
+      color: var(--text-color);
+
+      border: 1px solid var(--border-color);
+
+    }
+
+    .action-btn.secondary:hover {
+
+      background-color: #e2e6ea;
+
+    }
+
+    .action-btn.danger {
+
+      background-color: var(--danger-color);
+
+      color: white;
+
+      margin-top: 16px;
+
+    }
+
+    .action-btn.danger:hover {
+
+      background-color: #c0392b;
+
+      box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+
+    }
+
+    .action-btn:disabled {
+
+      background-color: #bdc3c7;
+
+      color: white;
+
+      cursor: not-allowed;
+
+      transform: none;
+
+      box-shadow: none;
+
+      filter: none;
+
+    }
+
+    /* Checkbox */
+
+    .option-group {
+
+      margin-bottom: 16px;
+
+    }
+
+    .checkbox-label {
+
+      display: flex;
+
+      align-items: center;
+
+      font-size: 13px;
+
+      color: #555;
+
+      cursor: pointer;
+
+    }
+
+    .checkbox-input {
+
+      margin-right: 10px;
+
+      width: 18px;
+
+      height: 18px;
+
+      accent-color: var(--accent-color);
+
+      cursor: pointer;
+
+    }
+
+    /* Progress / Counter */
+
+    .progress-card {
+
+      background: linear-gradient(135deg, var(--accent-color), #3498db);
+
+      color: white;
+
+      text-align: center;
+
+      padding: 24px;
+
+    }
+
+    .progress-card .card-title {
+
+      color: rgba(255,255,255,0.8);
+
+    }
+
+    .counter-display {
+
+      font-size: 56px;
+
+      font-weight: 900;
+
+      line-height: 1;
+
+      margin-bottom: 8px;
+
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+
+    }
+
+    .counter-label {
+
+      font-size: 12px;
+
+      text-transform: uppercase;
+
+      letter-spacing: 2px;
+
+      opacity: 0.9;
+
+      font-weight: 600;
+
+    }
+
+    /* Status Area */
+
+    .status-area {
+
+      margin-top: auto;
+
+      padding-top: 20px;
+
+      border-top: 1px solid var(--border-color);
+
+      font-size: 12px;
+
+      color: #7f8c8d;
+
+      text-align: center;
+
+      min-height: 40px;
+
+      display: flex;
+
+      justify-content: center;
+
+      align-items: center;
+
+    }
+
+    .status-msg.error {
+
+      color: var(--danger-color);
+
+      font-weight: 600;
+
+    }
+
+    .status-msg.warning {
+
+      color: var(--warning-color);
+
+      font-weight: 600;
+
+    }
+
+    /* Icons */
+
+    .icon::before {
+
+      display: inline-block;
+
+      width: 1em;
+
+      text-align: center;
+
+    }
+
+    .icon-eye::before {
+
+      content: '👁️';
+
+    }
+
+    .icon-trash::before {
+
+      content: '🗑️';
+
+    }
+
+    .icon-stop::before {
+
+      content: '🛑';
+
+    }
+
+    .icon-alert::before {
+
+      content: '⚠️';
+
+    }
+
+    /* Smooth hiding */
+
+    .hidden {
+
+      display: none !important;
+
+    }
+
+  </style>
+
+</head>
+
+<body class="theme-facebook">
+
+  <header class="app-header">
+
+    <div class="app-title">ZeroTrace</div>
+
+    <div
+
+      class="subtitle"
+
+      style="font-size: 12px; color: #7f8c8d;"
+
+    >
+
+      Social Media Bulk Activity Deletion
+
+    </div>
+
+  </header>
+
+
+  <!-- Platform Selector -->
+
+  <div class="platform-tabs">
+
+    <button
+
+      id="platformFacebook"
+
+      class="tab-btn active"
+
+    >
+
+      Facebook
+
+    </button>
+
+    <button
+
+      id="platformTwitter"
+
+      class="tab-btn"
+
+    >
+
+      X (Twitter)
+
+    </button>
+
+  </div>
+
+
+  <div class="control-panel">
+
+
+    <!-- Step 1: Navigation -->
+
+    <div class="card">
+
+      <div
+
+        class="card-title"
+
+        id="step1Title"
+
+      >
+
+        Step 1: If not already logged in to Facebook, log in and reopen ZeroTrace.
+
+      </div>
+
+
+      <button
+
+        id="navigateComments"
+
+        class="action-btn secondary icon icon-eye"
+
+      >
+
+        View Comments
+
+      </button>
+
+
+      <button
+
+        id="navigateReactions"
+
+        class="action-btn secondary icon icon-eye"
+
+      >
+
+        View Reactions
+
+      </button>
+
+
+      <!-- Twitter/X only: View Replies -->
+
+      <button
+
+        id="navigateReplies"
+
+        class="action-btn secondary icon icon-eye hidden"
+
+      >
+
+        View Replies
+
+      </button>
+
+
+      <div
+
+        class="note"
+
+        id="navigationNote"
+
+        style="font-size: 11px; color: #95a5a6; margin-top: 10px; text-align: center;"
+
+      >
+
+        <span class="icon icon-alert"></span>
+
+        After you make a selection, you may need to reopen the ZeroTrace extension.
+
+      </div>
+
+    </div>
+
+
+    <!-- Step 2: Delete -->
+
+    <div class="card">
+
+      <div class="card-title">
+
+        Step 2: Delete
+
+      </div>
+
+
+      <button
+
+        id="startDeletion"
+
+        class="action-btn primary icon icon-trash"
+
+      >
+
+        Start Deleting
+
+      </button>
+
+
+      <button
+
+        id="stopDeletion"
+
+        class="action-btn danger icon icon-stop hidden"
+
+        disabled
+
+      >
+
+        Stop Deleting
+
+      </button>
+
+
+      <div
+
+        class="note"
+
+        style="font-size: 11px; color: #95a5a6; margin-top: 10px; text-align: center;"
+
+      >
+
+        <span class="icon icon-alert"></span>
+
+        Wait for page to load before starting. Don't close popup.
+
+      </div>
+
+    </div>
+
+
+    <!-- Progress Section -->
+
+    <div
+
+      class="card progress-card hidden"
+
+      id="progressSection"
+
+    >
+
+      <div class="card-title">
+
+        Erasing Progress
+
+      </div>
+
+      <div
+
+        id="deleteCounter"
+
+        class="counter-display"
+
+      >
+
+        0
+
+      </div>
+
+      <div class="counter-label">
+
+        Items Expunged
+
+      </div>
+
+    </div>
+
+
+    <!-- Status / Error Messages -->
+
+    <div
+
+      class="status-area"
+
+      id="statusMessage"
+
+    >
+
+      Ready
+
+    </div>
+
+  </div>
+
+
+  <!-- Load platform modules first -->
+
+  <script src="platforms/facebook.js"></script>
+
+  <script src="platforms/twitter.js"></script>
+
+  <script src="platforms/registry.js"></script>
+
+  <!-- Load main popup script -->
+
+  <script src="popup.js"></script>
+
+</body>
+
+</html>
