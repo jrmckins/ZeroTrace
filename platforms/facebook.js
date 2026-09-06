@@ -684,6 +684,309 @@ window.FacebookPlatform = window.FacebookPlatform || {
         return false;
       }
 
+      function isElementDisabled(element) {
+
+        if (!element) {
+          return true;
+        }
+
+        if (element.disabled) {
+          return true;
+        }
+
+        const ariaDisabled =
+          element.getAttribute
+            ? element.getAttribute('aria-disabled')
+            : null;
+
+        if (ariaDisabled === 'true') {
+          return true;
+        }
+
+        const tabIndex =
+          element.getAttribute
+            ? element.getAttribute('tabindex')
+            : null;
+
+        if (tabIndex === '-1') {
+          return true;
+        }
+
+        const style =
+          window.getComputedStyle(
+            element
+          );
+
+        if (
+          style.pointerEvents === 'none' ||
+          style.cursor === 'not-allowed'
+        ) {
+          return true;
+        }
+
+        return false;
+      }
+
+      function findVisibleButtonByText(text) {
+
+        const candidates =
+          Array.from(
+            document.querySelectorAll(
+              '[role="button"], button, a, div[tabindex]'
+            )
+          );
+
+        return (
+          candidates.find(element => {
+
+            if (!isVisible(element)) {
+              return false;
+            }
+
+            const elementText =
+              element.textContent
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            return elementText === text;
+          }) || null
+        );
+      }
+
+      function findAndClickManagePosts() {
+
+        // Same matching logic as navigateToPosts(): the "Manage posts"
+        // control needs to be re-clicked after every page reload, since
+        // reloading closes the "Select the posts you want to manage"
+        // modal and drops us back on the plain Posts tab.
+
+        function cleanText(value) {
+
+          return (value || '')
+            .trim()
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+        }
+
+        function isManagePostsMatch(element) {
+
+          const text =
+            cleanText(
+              element.textContent
+            );
+
+          if (
+            text.startsWith('manage post')
+          ) {
+            return true;
+          }
+
+          const ariaLabel =
+            cleanText(
+              element.getAttribute
+                ? element.getAttribute('aria-label')
+                : ''
+            );
+
+          return ariaLabel.includes(
+            'manage post'
+          );
+        }
+
+        const elements =
+          Array.from(
+            document.querySelectorAll(
+              'span, div, button, a, [role="button"], [role="menuitem"], [aria-label]'
+            )
+          );
+
+        const candidates =
+          elements.filter(element =>
+            isVisible(element) &&
+            isManagePostsMatch(element)
+          );
+
+        candidates.sort((a, b) => {
+
+          const areaA =
+            a.getBoundingClientRect().width *
+            a.getBoundingClientRect().height;
+
+          const areaB =
+            b.getBoundingClientRect().width *
+            b.getBoundingClientRect().height;
+
+          return areaA - areaB;
+        });
+
+        const textElement =
+          candidates[0];
+
+        if (!textElement) {
+          return false;
+        }
+
+        let clickable =
+          textElement;
+
+        for (
+          let level = 0;
+          level < 10;
+          level++
+        ) {
+
+          if (!clickable) {
+            break;
+          }
+
+          const tag =
+            clickable.tagName
+              ? clickable.tagName.toLowerCase()
+              : '';
+
+          const role =
+            clickable.getAttribute
+              ? clickable.getAttribute('role')
+              : '';
+
+          const tabIndex =
+            clickable.getAttribute
+              ? clickable.getAttribute('tabindex')
+              : null;
+
+          if (
+            tag === 'button' ||
+            tag === 'a' ||
+            role === 'button' ||
+            role === 'menuitem' ||
+            tabIndex === '0'
+          ) {
+            break;
+          }
+
+          clickable =
+            clickable.parentElement;
+        }
+
+        if (!clickable) {
+          return false;
+        }
+
+        return clickElement(clickable);
+      }
+
+      function findSelectAllToggle() {
+
+        const candidates =
+          Array.from(
+            document.querySelectorAll(
+              '[role="button"], button, a, div[tabindex]'
+            )
+          );
+
+        return (
+          candidates.find(element => {
+
+            if (!isVisible(element)) {
+              return false;
+            }
+
+            const elementText =
+              element.textContent
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            return (
+              elementText === 'select all' ||
+              elementText === 'unselect all'
+            );
+          }) || null
+        );
+      }
+
+      function findDeleteRadioControl() {
+
+        const radios =
+          Array.from(
+            document.querySelectorAll(
+              'input[type="radio"], [role="radio"]'
+            )
+          );
+
+        for (const radio of radios) {
+
+          if (!isVisible(radio)) {
+            continue;
+          }
+
+          let container = radio;
+          let rowText = '';
+
+          for (
+            let level = 0;
+            level < 6 && container;
+            level++
+          ) {
+
+            rowText =
+              (container.textContent || '')
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            if (
+              rowText.includes('delete posts')
+            ) {
+              break;
+            }
+
+            container =
+              container.parentElement;
+          }
+
+          if (
+            rowText.includes('delete posts')
+          ) {
+            return radio;
+          }
+        }
+
+        return null;
+      }
+
+      function parseSelectedPostsCount() {
+
+        const candidates =
+          Array.from(
+            document.querySelectorAll(
+              'span, div'
+            )
+          );
+
+        for (const element of candidates) {
+
+          if (!isVisible(element)) {
+            continue;
+          }
+
+          const elementText =
+            (element.textContent || '').trim();
+
+          const match =
+            elementText.match(
+              /^(\d+)\/(\d+)$/
+            );
+
+          if (match) {
+            return parseInt(match[1], 10);
+          }
+        }
+
+        return 0;
+      }
+
       async function bulkDeleteComments() {
 
         console.log(
@@ -1069,6 +1372,280 @@ window.FacebookPlatform = window.FacebookPlatform || {
         );
       }
 
+      async function bulkDeletePosts() {
+
+        console.log(
+          'ZeroTrace: Starting Facebook bulk post deletion'
+        );
+
+        while (
+          !window.stopDeleting
+        ) {
+
+          const selectAllToggle =
+            findSelectAllToggle();
+
+          if (!selectAllToggle) {
+
+            // The modal closes on every page reload, so this is the
+            // expected state at the start of each new batch. Try to
+            // reopen it via "Manage posts" before assuming there's
+            // nothing left to delete.
+            const reopened =
+              findAndClickManagePosts();
+
+            if (reopened) {
+
+              console.log(
+                'ZeroTrace: Reopened "Manage posts" modal, waiting for it to render...'
+              );
+
+              await wait(2000);
+
+            } else {
+
+              console.log(
+                'ZeroTrace: "Manage posts" control not found either'
+              );
+            }
+
+            noChangeCount++;
+
+            console.log(
+              `ZeroTrace: "Select all" toggle not found (${noChangeCount}/${maxNoChangeAttempts})`
+            );
+
+            if (
+              noChangeCount >=
+              maxNoChangeAttempts
+            ) {
+
+              updatePopup(
+                deletedCount,
+                true
+              );
+
+              await chrome.storage.local.set({
+                isDeleting: false
+              });
+
+              alert(
+                `Completed! Deleted ${deletedCount} posts.`
+              );
+
+              return;
+            }
+
+            await wait(1500);
+
+            continue;
+          }
+
+          noChangeCount = 0;
+
+          const toggleText =
+            selectAllToggle.textContent
+              .trim()
+              .toLowerCase();
+
+          if (toggleText === 'select all') {
+
+            console.log(
+              'ZeroTrace: Clicking Select all'
+            );
+
+            if (
+              !clickElement(
+                selectAllToggle
+              )
+            ) {
+
+              await wait(1000);
+
+              continue;
+            }
+
+            await wait(1200);
+          }
+
+          const selectedCount =
+            parseSelectedPostsCount();
+
+          console.log(
+            `ZeroTrace: ${selectedCount} post(s) selected`
+          );
+
+          if (selectedCount === 0) {
+
+            console.log(
+              'ZeroTrace: No posts selected, nothing left to delete'
+            );
+
+            updatePopup(
+              deletedCount,
+              true
+            );
+
+            await chrome.storage.local.set({
+              isDeleting: false
+            });
+
+            alert(
+              `Completed! Deleted ${deletedCount} posts.`
+            );
+
+            return;
+          }
+
+          const nextButton =
+            findVisibleButtonByText('next');
+
+          if (
+            !nextButton ||
+            isElementDisabled(nextButton)
+          ) {
+
+            console.log(
+              'ZeroTrace: Next button not ready yet'
+            );
+
+            await wait(1000);
+
+            continue;
+          }
+
+          console.log(
+            'ZeroTrace: Clicking Next'
+          );
+
+          if (
+            !clickElement(nextButton)
+          ) {
+
+            await wait(1000);
+
+            continue;
+          }
+
+          await wait(1500);
+
+          let deleteRadio = null;
+
+          for (
+            let attempt = 0;
+            attempt < 15 && !deleteRadio;
+            attempt++
+          ) {
+
+            deleteRadio =
+              findDeleteRadioControl();
+
+            if (!deleteRadio) {
+              await wait(500);
+            }
+          }
+
+          if (!deleteRadio) {
+
+            console.log(
+              'ZeroTrace: Could not find "Delete posts" radio option'
+            );
+
+            await wait(1000);
+
+            continue;
+          }
+
+          console.log(
+            'ZeroTrace: Selecting "Delete posts" option'
+          );
+
+          if (
+            !clickElement(deleteRadio)
+          ) {
+
+            await wait(1000);
+
+            continue;
+          }
+
+          await wait(800);
+
+          let doneButton = null;
+
+          for (
+            let attempt = 0;
+            attempt < 15;
+            attempt++
+          ) {
+
+            const candidate =
+              findVisibleButtonByText('done');
+
+            if (
+              candidate &&
+              !isElementDisabled(candidate)
+            ) {
+
+              doneButton = candidate;
+
+              break;
+            }
+
+            await wait(500);
+          }
+
+          if (!doneButton) {
+
+            console.log(
+              'ZeroTrace: "Done" button never became enabled'
+            );
+
+            await wait(1000);
+
+            continue;
+          }
+
+          console.log(
+            'ZeroTrace: Clicking Done to confirm deletion'
+          );
+
+          if (
+            !clickElement(doneButton)
+          ) {
+
+            await wait(1000);
+
+            continue;
+          }
+
+          await wait(3000);
+
+          deletedCount += selectedCount;
+
+          updatePopup(
+            deletedCount
+          );
+
+          await chrome.storage.local.set({
+            deleteCounter:
+              deletedCount
+          });
+
+          console.log(
+            `ZeroTrace: Deleted a batch of ${selectedCount} post(s). Total: ${deletedCount}. Reloading page...`
+          );
+
+          window.location.reload();
+
+          return;
+        }
+
+        alert(
+          `Deletion stopped. Completed ${deletedCount} bulk removal operations.`
+        );
+      }
+
       if (
         type === 'comments'
       ) {
@@ -1096,6 +1673,24 @@ window.FacebookPlatform = window.FacebookPlatform || {
 
             console.error(
               'ZeroTrace Facebook bulk reaction deletion error:',
+              err
+            );
+
+            alert(
+              `Error occurred: ${err.message}`
+            );
+          }
+        );
+
+      } else if (
+        type === 'posts'
+      ) {
+
+        bulkDeletePosts().catch(
+          err => {
+
+            console.error(
+              'ZeroTrace Facebook bulk post deletion error:',
               err
             );
 

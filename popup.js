@@ -21,6 +21,21 @@ function showStatus(message, type) {
 
   status.textContent = message;
   status.className = `status-msg ${type || ''}`;
+
+  // #statusMessage lives INSIDE #progressSection, which is
+  // display:none until showProgress() runs. Without this, any
+  // status shown before a successful start (wrong-page errors,
+  // "no active tab", init errors, etc.) is written into the DOM
+  // but sits inside a hidden container and is never actually seen.
+  const progressSection =
+    document.getElementById('progressSection');
+
+  if (
+    progressSection &&
+    progressSection.style.display !== 'block'
+  ) {
+    progressSection.style.display = 'block';
+  }
 }
 
 function showProgress() {
@@ -529,7 +544,11 @@ async function startDeletion() {
 
   let onCorrectPage = false;
 
-  if (type === 'comments') {
+  if (type === 'posts') {
+    onCorrectPage =
+      detection.posts &&
+      detection.posts(tab.url);
+  } else if (type === 'comments') {
     onCorrectPage =
       detection.comments(tab.url);
   } else if (type === 'reactions') {
@@ -551,7 +570,9 @@ async function startDeletion() {
   ) {
     let pageName = 'Posts/Comments';
 
-    if (type === 'reactions') {
+    if (type === 'posts') {
+      pageName = 'Manage Posts';
+    } else if (type === 'reactions') {
       pageName = 'Likes';
     } else if (type === 'replies') {
       pageName = 'Replies';
