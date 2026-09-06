@@ -1,17 +1,22 @@
 /**
  * Facebook Platform Implementation
+ *
+ * ZeroTrace
+ * Handles bulk deletion of Facebook comments and reactions.
  */
 
-const FacebookPlatform = {
-
+window.FacebookPlatform = window.FacebookPlatform || {
   id: 'facebook',
   name: 'Facebook',
   domain: 'facebook.com',
 
   getUrls() {
     return {
-      comments: 'https://www.facebook.com/me/allactivity?activity_history=false&category_key=COMMENTSCLUSTER',
-      reactions: 'https://www.facebook.com/me/allactivity?activity_history=false&category_key=LIKEDPOSTS'
+      comments:
+        'https://www.facebook.com/me/allactivity?activity_history=false&category_key=COMMENTSCLUSTER',
+
+      reactions:
+        'https://www.facebook.com/me/allactivity?activity_history=false&category_key=LIKEDPOSTS'
     };
   },
 
@@ -45,16 +50,16 @@ const FacebookPlatform = {
   },
 
   getCleanupFunction() {
-
     return async function cleanupActivities(type, excludeOwnPosts) {
 
-      // Load initial count from storage to maintain persistence across page reloads
-      const initialStorage = await chrome.storage.local.get(['deleteCounter']);
-      let deletedCount = initialStorage.deleteCounter || 0;
+      const initialStorage =
+        await chrome.storage.local.get(['deleteCounter']);
+
+      let deletedCount =
+        initialStorage.deleteCounter || 0;
+
       let noChangeCount = 0;
-      
-      // Increased to 20 attempts (~30 seconds) to allow Facebook's React UI 
-      // enough time to fully load and render checkboxes after a page reload.
+
       const maxNoChangeAttempts = 20;
 
       window.stopDeleting = false;
@@ -62,22 +67,34 @@ const FacebookPlatform = {
       const wait = (ms) =>
         new Promise(resolve => setTimeout(resolve, ms));
 
+      // ============================================================
+      // POPUP COMMUNICATION
+      // ============================================================
+
       function updatePopup(count, finished = false) {
         try {
           chrome.runtime.sendMessage({
-            type: finished ? 'finished' : 'updateCounter',
+            type: finished
+              ? 'finished'
+              : 'updateCounter',
+
             count: count
           });
-        } catch (e) {
-          // Popup may be closed.
-        }
+        } catch (e) {}
       }
+
+      // ============================================================
+      // VISIBILITY
+      // ============================================================
 
       function isVisible(element) {
         if (!element) return false;
 
-        const rect = element.getBoundingClientRect();
-        const style = window.getComputedStyle(element);
+        const rect =
+          element.getBoundingClientRect();
+
+        const style =
+          window.getComputedStyle(element);
 
         return (
           rect.width > 0 &&
@@ -87,66 +104,19 @@ const FacebookPlatform = {
         );
       }
 
-      /*
-      * Find Facebook's "All" checkbox.
-      */
-      function findSelectAllCheckbox() {
-        const checkbox =
-          document.querySelector(
-            'input[name="comet_activity_log_select_all_checkbox"]'
-          );
+      // ============================================================
+      // CLICK HELPER
+      // ============================================================
 
-        if (checkbox && isVisible(checkbox)) {
-          return checkbox;
-        }
-
-        return null;
-      }
-
-      /*
-      * Find a visible Facebook control whose text is exactly "Remove".
-      */
-      function findVisibleRemoveControls() {
-
-        const candidates = Array.from(
-          document.querySelectorAll(
-            '[role="button"], button, [tabindex="0"]'
-          )
-        );
-
-        return candidates.filter(element => {
-
-          if (!isVisible(element)) {
-            return false;
-          }
-
-          const text =
-            element.textContent
-              .trim()
-              .replace(/\s+/g, ' ')
-              .toLowerCase();
-
-          return text === 'remove';
-        });
-      }
-
-      /*
-      * Click an element using a real mouse-style event sequence.
-      */
       function clickElement(element) {
-
-        if (!element) {
-          return false;
-        }
+        if (!element) return false;
 
         try {
           element.scrollIntoView({
             behavior: 'instant',
             block: 'center'
           });
-        } catch (e) {
-          // Ignore scrolling errors.
-        }
+        } catch (e) {}
 
         try {
           element.dispatchEvent(
@@ -180,28 +150,158 @@ const FacebookPlatform = {
         }
       }
 
-      /*
-      * COMMENT BULK DELETE WITH PAGE RELOAD PERSISTENCE
-      */
+      // ============================================================
+      // FIND FACEBOOK "ALL" CHECKBOX
+      // ============================================================
+
+      function findSelectAllCheckbox() {
+
+        // Primary Facebook selector
+        const checkbox =
+          document.querySelector(
+            'input[name="comet_activity_log_select_all_checkbox"]'
+          );
+
+        if (checkbox && isVisible(checkbox)) {
+          return checkbox;
+        }
+
+        // Fallback: look for visible checkbox inputs
+        const checkboxes =
+          Array.from(
+            document.querySelectorAll(
+              'input[type="checkbox"]'
+            )
+          );
+
+        for (const candidate of checkboxes) {
+
+          if (!isVisible(candidate)) {
+            continue;
+          }
+
+          const ariaLabel =
+            (
+              candidate.getAttribute('aria-label') ||
+              ''
+            ).toLowerCase();
+
+          const parentText =
+            (
+              candidate.parentElement?.textContent ||
+              ''
+            ).trim().toLowerCase();
+
+          if (
+            ariaLabel === 'all' ||
+            ariaLabel.includes('select all') ||
+            parentText === 'all'
+          ) {
+            return candidate;
+          }
+        }
+
+        return null;
+      }
+
+      // ============================================================
+      // FIND BULK REMOVE BUTTON
+      // ============================================================
+
+      function findVisibleRemoveControls() {
+
+        const candidates =
+          Array.from(
+            document.querySelectorAll(
+              '[role="button"], button, [tabindex="0"]'
+            )
+          );
+
+        return candidates.filter(element => {
+
+          if (!isVisible(element)) {
+            return false;
+          }
+
+          const text =
+            element.textContent
+              .trim()
+              .replace(/\s+/g, ' ')
+              .toLowerCase();
+
+          return (
+            text === 'remove' ||
+            text === 'delete'
+          );
+        });
+      }
+
+      // ============================================================
+      // WAIT FOR CHECKBOX STATE
+      // ============================================================
+
+      async function waitForCheckboxChecked(
+        checkbox,
+        timeout = 5000
+      ) {
+
+        const start =
+          Date.now();
+
+        while (
+          Date.now() - start <
+          timeout
+        ) {
+
+          if (
+            checkbox &&
+            checkbox.checked
+          ) {
+            return true;
+          }
+
+          await wait(250);
+        }
+
+        return false;
+      }
+
+      // ============================================================
+      // BULK DELETE COMMENTS
+      // ============================================================
+
       async function bulkDeleteComments() {
 
-        console.log('Expunged: Starting Facebook bulk comment deletion');
+        console.log(
+          'ZeroTrace: Starting Facebook bulk comment deletion'
+        );
 
         while (!window.stopDeleting) {
 
-          const checkbox = findSelectAllCheckbox();
+          const checkbox =
+            findSelectAllCheckbox();
 
           if (!checkbox) {
 
             noChangeCount++;
 
             console.log(
-              `Expunged: "All" checkbox not found (${noChangeCount}/${maxNoChangeAttempts})`
+              `ZeroTrace: "All" checkbox not found (${noChangeCount}/${maxNoChangeAttempts})`
             );
 
-            if (noChangeCount >= maxNoChangeAttempts) {
-              updatePopup(deletedCount, true);
-              await chrome.storage.local.set({ isDeleting: false });
+            if (
+              noChangeCount >=
+              maxNoChangeAttempts
+            ) {
+
+              updatePopup(
+                deletedCount,
+                true
+              );
+
+              await chrome.storage.local.set({
+                isDeleting: false
+              });
 
               alert(
                 `Completed! Deleted ${deletedCount} comments.`
@@ -211,62 +311,98 @@ const FacebookPlatform = {
             }
 
             await wait(1500);
+
             continue;
           }
 
           noChangeCount = 0;
 
+          // --------------------------------------------------------
+          // SELECT ALL
+          // --------------------------------------------------------
+
           if (!checkbox.checked) {
 
-            console.log('Expunged: Clicking All');
+            console.log(
+              'ZeroTrace: Clicking All'
+            );
 
-            if (!clickElement(checkbox)) {
+            if (
+              !clickElement(checkbox)
+            ) {
+
               await wait(1000);
               continue;
             }
 
-            await wait(1500);
+            const checked =
+              await waitForCheckboxChecked(
+                checkbox
+              );
+
+            if (!checked) {
+
+              console.log(
+                'ZeroTrace: All checkbox did not become checked'
+              );
+
+              await wait(1000);
+              continue;
+            }
           }
 
-          const selectedCheckbox = findSelectAllCheckbox();
+          // --------------------------------------------------------
+          // FIND REMOVE
+          // --------------------------------------------------------
 
-          if (!selectedCheckbox || !selectedCheckbox.checked) {
-
-            console.log(
-              'Expunged: All checkbox did not become checked'
-            );
-
-            await wait(1000);
-            continue;
-          }
-
-          const removeButtons = findVisibleRemoveControls();
+          const removeButtons =
+            findVisibleRemoveControls();
 
           console.log(
-            `Expunged: Found ${removeButtons.length} visible Remove control(s)`
+            `ZeroTrace: Found ${removeButtons.length} visible Remove control(s)`
           );
 
-          if (removeButtons.length === 0) {
+          if (
+            removeButtons.length === 0
+          ) {
 
             await wait(1500);
             continue;
           }
 
-          console.log('Expunged: Clicking bulk Remove');
+          // --------------------------------------------------------
+          // CLICK BULK REMOVE
+          // --------------------------------------------------------
 
-          if (!clickElement(removeButtons[0])) {
+          console.log(
+            'ZeroTrace: Clicking bulk Remove'
+          );
+
+          if (
+            !clickElement(
+              removeButtons[0]
+            )
+          ) {
+
             await wait(1000);
             continue;
           }
 
           await wait(1200);
 
-          let confirmButtons = findVisibleRemoveControls();
+          // --------------------------------------------------------
+          // CONFIRM REMOVE
+          // --------------------------------------------------------
 
-          if (confirmButtons.length === 0) {
+          const confirmButtons =
+            findVisibleRemoveControls();
+
+          if (
+            confirmButtons.length === 0
+          ) {
 
             console.log(
-              'Expunged: Confirmation Remove not found'
+              'ZeroTrace: Confirmation Remove not found'
             );
 
             await wait(1000);
@@ -274,27 +410,42 @@ const FacebookPlatform = {
           }
 
           const confirmButton =
-            confirmButtons[confirmButtons.length - 1];
+            confirmButtons[
+              confirmButtons.length - 1
+            ];
 
-          console.log('Expunged: Clicking confirmation Remove');
+          console.log(
+            'ZeroTrace: Clicking confirmation Remove'
+          );
 
-          if (!clickElement(confirmButton)) {
+          if (
+            !clickElement(
+              confirmButton
+            )
+          ) {
+
             await wait(1000);
             continue;
           }
 
           await wait(2500);
-          deletedCount++;
-          
-          updatePopup(deletedCount);
-          await chrome.storage.local.set({ deleteCounter: deletedCount });
 
-          console.log(
-            `Expunged: Completed bulk removal operation #${deletedCount}. Reloading page...`
+          deletedCount++;
+
+          updatePopup(
+            deletedCount
           );
 
-          // Reload the page to clear stale DOM nodes, then let extension auto-resume via storage state
+          await chrome.storage.local.set({
+            deleteCounter: deletedCount
+          });
+
+          console.log(
+            `ZeroTrace: Completed bulk comment removal operation #${deletedCount}. Reloading page...`
+          );
+
           window.location.reload();
+
           return;
         }
 
@@ -303,231 +454,265 @@ const FacebookPlatform = {
         );
       }
 
-      /*
-      * Keep the existing one-at-a-time mechanism for reactions.
-      */
-      async function deleteReactions() {
+      // ============================================================
+      // BULK DELETE REACTIONS
+      //
+      // Facebook's Likes and reactions page has the same
+      // "All" selection mechanism. We deliberately do NOT
+      // process individual "More options" menus anymore.
+      // ============================================================
 
-        function scrollDown() {
-          window.scrollTo(0, document.body.scrollHeight);
-        }
+      async function bulkDeleteReactions() {
 
-        function findActivityItems() {
+        console.log(
+          'ZeroTrace: Starting Facebook BULK reaction deletion'
+        );
 
-          const allButtons =
-            Array.from(document.querySelectorAll('[role="button"]'));
+        while (!window.stopDeleting) {
 
-          return allButtons.filter(btn => {
+          // --------------------------------------------------------
+          // FIND "ALL"
+          // --------------------------------------------------------
 
-            const ariaLabel =
-              btn.getAttribute('aria-label') || '';
+          const checkbox =
+            findSelectAllCheckbox();
 
-            if (!ariaLabel.toLowerCase().includes('more options')) {
-              return false;
-            }
+          if (!checkbox) {
 
-            const parent =
-              btn.closest('div[role="main"]') ||
-              btn.closest('[data-pagelet]');
+            noChangeCount++;
 
-            if (parent) {
-
-              const parentText =
-                parent.textContent.toLowerCase();
-
-              if (
-                parentText.includes('delete chat') ||
-                parentText.includes('archive chat')
-              ) {
-                return false;
-              }
-
-              if (
-                parentText.includes('reacted') ||
-                parentText.includes('liked') ||
-                parentText.includes('shared')
-              ) {
-                return true;
-              }
-            }
-
-            return false;
-          });
-        }
-
-        function findDeleteOption() {
-
-          const menuItems =
-            Array.from(
-              document.querySelectorAll('[role="menuitem"]')
+            console.log(
+              `ZeroTrace: Reaction "All" checkbox not found (${noChangeCount}/${maxNoChangeAttempts})`
             );
 
-          for (const item of menuItems) {
-
-            const text =
-              item.textContent.toLowerCase();
-
             if (
-              text.includes('unlike') ||
-              text.includes('remove')
+              noChangeCount >=
+              maxNoChangeAttempts
             ) {
-              if (!text.includes('chat')) {
-                return item;
-              }
-            }
-          }
 
-          return null;
-        }
+              updatePopup(
+                deletedCount,
+                true
+              );
 
-        function findConfirmButton() {
+              await chrome.storage.local.set({
+                isDeleting: false
+              });
 
-          const buttons =
-            Array.from(
-              document.querySelectorAll('[role="button"]')
-            );
+              alert(
+                `Completed! Deleted ${deletedCount} reactions.`
+              );
 
-          for (const btn of buttons) {
-
-            const text =
-              btn.textContent.trim().toLowerCase();
-
-            if (
-              (
-                text === 'confirm' ||
-                text === 'remove'
-              ) &&
-              !text.includes('chat')
-            ) {
-              return btn;
-            }
-          }
-
-          return null;
-        }
-
-        function closeMenus() {
-
-          document.dispatchEvent(
-            new KeyboardEvent('keydown', {
-              key: 'Escape',
-              code: 'Escape',
-              keyCode: 27,
-              which: 27,
-              bubbles: true
-            })
-          );
-        }
-
-        async function deleteNextReaction() {
-
-          if (window.stopDeleting) {
-            return false;
-          }
-
-          const activityButtons =
-            findActivityItems();
-
-          if (activityButtons.length === 0) {
-
-            scrollDown();
-
-            await wait(3000);
-
-            const newButtons =
-              findActivityItems();
-
-            if (newButtons.length === 0) {
-              noChangeCount++;
-
-              if (noChangeCount >= maxNoChangeAttempts) {
-
-                updatePopup(deletedCount, true);
-                await chrome.storage.local.set({ isDeleting: false });
-
-                alert(
-                  `Completed! Deleted ${deletedCount} reactions.`
-                );
-
-                return false;
-              }
-
-            } else {
-              noChangeCount = 0;
+              return;
             }
 
-            return true;
+            await wait(1500);
+
+            continue;
           }
 
           noChangeCount = 0;
 
-          activityButtons[0].click();
+          // --------------------------------------------------------
+          // SELECT ALL REACTIONS
+          // --------------------------------------------------------
 
-          await wait(1500);
+          if (!checkbox.checked) {
 
-          const deleteOption =
-            findDeleteOption();
+            console.log(
+              'ZeroTrace: Selecting ALL reactions'
+            );
 
-          if (!deleteOption) {
+            if (
+              !clickElement(checkbox)
+            ) {
 
-            closeMenus();
-            await wait(500);
+              console.log(
+                'ZeroTrace: Failed to click All checkbox'
+              );
 
-            return true;
+              await wait(1000);
+              continue;
+            }
+
+            const checked =
+              await waitForCheckboxChecked(
+                checkbox,
+                6000
+              );
+
+            if (!checked) {
+
+              console.log(
+                'ZeroTrace: All reactions checkbox did not become checked'
+              );
+
+              await wait(1000);
+              continue;
+            }
+
+            console.log(
+              'ZeroTrace: ALL reactions selected'
+            );
           }
 
-          deleteOption.click();
+          // Give Facebook time to update
+          // the bulk action toolbar.
+          await wait(1000);
 
-          await wait(1500);
+          // --------------------------------------------------------
+          // FIND BULK REMOVE
+          // --------------------------------------------------------
 
-          const confirmButton =
-            findConfirmButton();
+          const removeButtons =
+            findVisibleRemoveControls();
 
-          if (confirmButton) {
+          console.log(
+            `ZeroTrace: Found ${removeButtons.length} Remove control(s) after selecting ALL`
+          );
 
-            confirmButton.click();
+          if (
+            removeButtons.length === 0
+          ) {
 
-            await wait(2000);
-
-          } else {
+            console.log(
+              'ZeroTrace: Bulk Remove button has not appeared yet'
+            );
 
             await wait(1500);
+            continue;
           }
+
+          // --------------------------------------------------------
+          // CLICK BULK REMOVE
+          // --------------------------------------------------------
+
+          console.log(
+            'ZeroTrace: Clicking bulk Remove for reactions'
+          );
+
+          if (
+            !clickElement(
+              removeButtons[0]
+            )
+          ) {
+
+            console.log(
+              'ZeroTrace: Failed to click bulk Remove'
+            );
+
+            await wait(1000);
+            continue;
+          }
+
+          await wait(1500);
+
+          // --------------------------------------------------------
+          // CONFIRM REMOVE
+          // --------------------------------------------------------
+
+          const confirmButtons =
+            findVisibleRemoveControls();
+
+          if (
+            confirmButtons.length === 0
+          ) {
+
+            console.log(
+              'ZeroTrace: Reaction confirmation Remove not found'
+            );
+
+            await wait(1000);
+            continue;
+          }
+
+          const confirmButton =
+            confirmButtons[
+              confirmButtons.length - 1
+            ];
+
+          console.log(
+            'ZeroTrace: Clicking reaction confirmation Remove'
+          );
+
+          if (
+            !clickElement(
+              confirmButton
+            )
+          ) {
+
+            console.log(
+              'ZeroTrace: Failed to click reaction confirmation'
+            );
+
+            await wait(1000);
+            continue;
+          }
+
+          // --------------------------------------------------------
+          // WAIT FOR FACEBOOK TO PROCESS
+          // --------------------------------------------------------
+
+          await wait(3000);
 
           deletedCount++;
 
-          updatePopup(deletedCount);
-          await chrome.storage.local.set({ deleteCounter: deletedCount });
+          updatePopup(
+            deletedCount
+          );
 
-          closeMenus();
+          await chrome.storage.local.set({
+            deleteCounter: deletedCount
+          });
 
-          await wait(500);
+          console.log(
+            `ZeroTrace: Completed bulk reaction removal operation #${deletedCount}`
+          );
 
-          return true;
+          // Facebook rebuilds the activity list after
+          // bulk deletion. Reload to get the next batch.
+          console.log(
+            'ZeroTrace: Reloading Facebook reactions page...'
+          );
+
+          window.location.reload();
+
+          return;
         }
 
-        while (!window.stopDeleting) {
-
-          const shouldContinue =
-            await deleteNextReaction();
-
-          if (!shouldContinue) {
-            break;
-          }
-
-          await wait(1500);
-        }
+        alert(
+          `Deletion stopped. Completed ${deletedCount} bulk reaction operations.`
+        );
       }
 
-      /*
-      * Choose the appropriate deletion method.
-      */
+      // ============================================================
+      // START CLEANUP
+      // ============================================================
+
       if (type === 'comments') {
 
         bulkDeleteComments().catch(err => {
 
           console.error(
-            'Expunged Facebook bulk comment deletion error:',
+            'ZeroTrace Facebook bulk comment deletion error:',
+            err
+          );
+
+          alert(
+            `Error occurred: ${err.message}`
+          );
+        });
+
+      } else if (type === 'reactions') {
+
+        // IMPORTANT:
+        // Reactions now use Facebook's "All" option.
+        // They are NOT deleted individually.
+
+        bulkDeleteReactions().catch(err => {
+
+          console.error(
+            'ZeroTrace Facebook bulk reaction deletion error:',
             err
           );
 
@@ -538,17 +723,13 @@ const FacebookPlatform = {
 
       } else {
 
-        deleteReactions().catch(err => {
+        console.error(
+          `ZeroTrace: Unknown Facebook cleanup type: ${type}`
+        );
 
-          console.error(
-            'Expunged Facebook reaction deletion error:',
-            err
-          );
-
-          alert(
-            `Error occurred: ${err.message}`
-          );
-        });
+        alert(
+          `Unknown cleanup type: ${type}`
+        );
       }
     };
   }

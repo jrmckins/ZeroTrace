@@ -3,37 +3,38 @@
   "name": "ZeroTrace",
   "version": "0.1.0",
   "description": "Delete Facebook and X/Twitter activity.",
-
   "permissions": [
     "activeTab",
     "scripting",
-    "storage",
-    "tabs",
-    "sidePanel"
+    "storage"
   ],
-
   "host_permissions": [
     "https://www.facebook.com/*",
     "https://facebook.com/*",
     "https://twitter.com/*",
     "https://x.com/*"
   ],
-
   "action": {
-    "default_title": "ZeroTrace"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
   },
-
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",
     "128": "icon128.png"
   },
-
-  "side_panel": {
-    "default_path": "panel.html"
-  },
-
   "background": {
     "service_worker": "background.js"
   }
+  {
+    "side_panel": {
+      "default_path": "panel.html"
+    },
+    "permissions": ["sidePanel", "tabs", "scripting"]
+  }
+
 }

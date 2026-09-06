@@ -92,6 +92,7 @@ function updateDeletionUI(isDeleting) {
     document.getElementById('stopDeletion');
 
   if (startButton) {
+
     startButton.classList.toggle(
       'hidden',
       isDeleting
@@ -101,6 +102,7 @@ function updateDeletionUI(isDeleting) {
   }
 
   if (stopButton) {
+
     stopButton.classList.toggle(
       'hidden',
       !isDeleting
@@ -137,61 +139,73 @@ function updatePlatformUI() {
   if (currentPlatform === 'twitter') {
 
     if (step1Title) {
+
       step1Title.textContent =
-        'Step 1: If not already logged in to Twitter, log in and reopen ZeroTrace.';
+        'Step 2: If not already logged in to Twitter, log in.';
     }
 
     if (commentsButton) {
+
       commentsButton.textContent =
         'View Posts';
     }
 
     if (reactionsButton) {
+
       reactionsButton.textContent =
         'View Likes';
     }
 
     if (repliesButton) {
+
       repliesButton.classList.remove('hidden');
     }
 
     if (repostsButton) {
+
       repostsButton.classList.remove('hidden');
     }
 
     if (navigationNote) {
+
       navigationNote.innerHTML =
-        '<span class="icon icon-alert"></span> After you make a selection, you may need to reopen the ZeroTrace extension.';
+        '<span class="icon icon-alert"></span>';
     }
 
   } else {
 
     if (step1Title) {
+
       step1Title.textContent =
-        'Step 1: If not already logged in to Facebook, log in and reopen ZeroTrace';
+        'Step 2: If not already logged in to Facebook, log in.';
     }
 
     if (commentsButton) {
+
       commentsButton.textContent =
         'View Comments';
     }
 
     if (reactionsButton) {
+
       reactionsButton.textContent =
         'View Reactions';
     }
 
     if (repliesButton) {
+
       repliesButton.classList.add('hidden');
     }
 
     if (repostsButton) {
+
       repostsButton.classList.add('hidden');
     }
 
     if (navigationNote) {
+
       navigationNote.innerHTML =
-        '<span class="icon icon-alert"></span> After you make a selection, you may need to reopen the ZeroTrace extension.';
+        '<span class="icon icon-alert"></span> ';
     }
   }
 }
@@ -203,9 +217,11 @@ function updatePlatformUI() {
 function setPlatform(platformId) {
 
   if (!PlatformRegistry.has(platformId)) {
+
     console.error(
       `[ZeroTrace] Platform ${platformId} not found`
     );
+
     return;
   }
 
@@ -221,7 +237,9 @@ function setPlatform(platformId) {
   document
     .querySelectorAll('.tab-btn')
     .forEach(btn => {
+
       btn.classList.remove('active');
+
     });
 
   const capitalizedId =
@@ -234,10 +252,12 @@ function setPlatform(platformId) {
     );
 
   if (button) {
+
     button.classList.add('active');
   }
 
   updatePlatformUI();
+
   checkCurrentPage();
 }
 
@@ -324,7 +344,7 @@ async function checkCurrentPage() {
   ) {
 
     showPageStatus(
-      'Navigate using Step 1',
+      'Navigate using Step 3',
       false
     );
 
@@ -553,15 +573,20 @@ async function startDeletion() {
     let pageName = 'Posts/Comments';
 
     if (type === 'reactions') {
+
       pageName = 'Likes';
+
     } else if (type === 'replies') {
+
       pageName = 'Replies';
+
     } else if (type === 'reposts') {
+
       pageName = 'Reposts';
     }
 
     showStatus(
-      `Please navigate to the ${pageName} page first using Step 1!`,
+      `Please navigate to the ${pageName} page first using Step 3!`,
       'error'
     );
 
@@ -635,11 +660,54 @@ async function stopDeletion() {
     isDeleting: false
   });
 
+  // Stop any currently running cleanup script in the active tab.
+  try {
+
+    const [tab] =
+      await chrome.tabs.query({
+        active: true,
+        currentWindow: true
+      });
+
+    if (tab && tab.id) {
+
+      await chrome.scripting.executeScript({
+
+        target: {
+          tabId: tab.id
+        },
+
+        func: () => {
+          window.stopDeleting = true;
+        }
+
+      });
+    }
+
+  } catch (error) {
+
+    console.log(
+      '[ZeroTrace] Could not signal cleanup script to stop:',
+      error
+    );
+  }
+
   // Switch back to Start Deleting.
   updateDeletionUI(false);
 
+  // Hide "Cleanup in progress".
+  const progressSection =
+    document.getElementById('progressSection');
+
+  if (progressSection) {
+
+    progressSection.classList.add('hidden');
+
+    progressSection.style.display = 'none';
+  }
+
   showStatus(
-    'Stopping deletion...',
+    'Cleanup stopped.',
     'info'
   );
 }

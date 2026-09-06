@@ -1,740 +1,915 @@
 <!DOCTYPE html>
-
-<html>
-
+<html lang="en">
 <head>
-
   <meta charset="UTF-8">
 
   <style>
-
     :root {
+      --bg: #0b0f14;
+      --surface: #111720;
+      --surface-2: #171e29;
+      --surface-3: #1d2633;
 
-      --bg-color: #f4f7f6;
-
-      --text-color: #333;
+      --text: #f4f7fb;
+      --text-secondary: #9aa7b5;
+      --text-muted: #667384;
 
       --accent-color: #667eea;
+      --accent-dark: #5568d8;
 
-      --danger-color: #e74c3c;
+      --danger: #ff5c68;
+      --success: #35d07f;
+      --warning: #f5b942;
 
-      --success-color: #2ecc71;
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(255,255,255,0.14);
 
-      --warning-color: #f39c12;
-
-      --border-color: #e0e0e0;
-
-      --card-bg: #ffffff;
-
+      --shadow: 0 12px 35px rgba(0,0,0,0.28);
     }
 
-    /* Dynamic Platform Colors injected via JS */
-
+    /* Platform Colors */
     body.theme-facebook {
-
       --accent-color: #1877f2;
-
+      --accent-dark: #0f65d8;
     }
 
     body.theme-twitter {
-
       --accent-color: #1da1f2;
-
+      --accent-dark: #0d8ddd;
     }
 
     * {
-
       margin: 0;
-
       padding: 0;
-
       box-sizing: border-box;
-
     }
 
     body {
-
       width: 380px;
-
       min-height: 560px;
 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
 
-      background-color: var(--bg-color);
+      background:
+        radial-gradient(
+          circle at 100% 0%,
+          rgba(102,126,234,0.12),
+          transparent 35%
+        ),
+        var(--bg);
 
-      color: var(--text-color);
+      color: var(--text);
 
       display: flex;
-
       flex-direction: column;
 
-      padding: 20px;
+      padding: 18px;
 
       overflow-x: hidden;
-
     }
 
-    /* Header */
+    /* =========================================================
+       HEADER
+       ========================================================= */
 
     .app-header {
-
       display: flex;
-
       align-items: center;
-
       justify-content: space-between;
 
-      margin-bottom: 24px;
+      padding: 4px 2px 16px;
 
-      border-bottom: 2px solid var(--accent-color);
+      margin-bottom: 4px;
 
-      padding-bottom: 12px;
-
+      border-bottom: 1px solid var(--border);
     }
 
-    .app-title {
-
-      font-size: 20px;
-
-      font-weight: 800;
-
-      color: var(--accent-color);
-
-      letter-spacing: -0.5px;
-
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
     }
 
-    /* Platform Tabs */
+    .brand-icon {
+      width: 34px;
+      height: 34px;
 
-    .platform-tabs {
+      border-radius: 10px;
 
       display: flex;
+      align-items: center;
+      justify-content: center;
 
-      border: 1px solid var(--border-color);
-
-      border-radius: 8px;
-
-      overflow: hidden;
-
-      margin-bottom: 24px;
-
-      background: var(--card-bg);
-
-    }
-
-    .tab-btn {
-
-      flex: 1;
-
-      padding: 10px;
-
-      border: none;
-
-      background: none;
-
-      font-size: 14px;
-
-      font-weight: 600;
-
-      color: #7f8c8d;
-
-      cursor: pointer;
-
-      transition: all 0.3s ease;
-
-    }
-
-    .tab-btn.active {
-
-      background-color: var(--accent-color);
+      background:
+        linear-gradient(
+          135deg,
+          var(--accent-color),
+          var(--accent-dark)
+        );
 
       color: white;
 
+      font-size: 17px;
+      font-weight: 900;
+
+      box-shadow:
+        0 5px 18px rgba(0,0,0,0.3),
+        0 0 0 1px rgba(255,255,255,0.08);
     }
 
-    /* Cards/Sections */
+    .app-title {
+      font-size: 19px;
+      font-weight: 800;
 
-    .control-panel {
+      letter-spacing: -0.5px;
 
+      color: var(--text);
+    }
+
+    .app-version {
+      font-size: 10px;
+      color: var(--text-muted);
+
+      margin-top: 2px;
+    }
+
+    .header-status {
       display: flex;
+      align-items: center;
+      gap: 5px;
 
-      flex-direction: column;
-
-      gap: 20px;
-
-      flex: 1;
-
+      font-size: 10px;
+      color: var(--text-secondary);
     }
 
-    .card {
+    .status-dot {
+      width: 7px;
+      height: 7px;
 
-      background: var(--card-bg);
+      border-radius: 50%;
+
+      background: var(--success);
+
+      box-shadow:
+        0 0 8px rgba(53,208,127,0.7);
+    }
+
+    /* =========================================================
+       PLATFORM SELECTOR
+       ========================================================= */
+
+    .platform-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+
+      gap: 5px;
+
+      padding: 4px;
+
+      margin: 16px 0;
+
+      background: var(--surface);
+
+      border: 1px solid var(--border);
 
       border-radius: 12px;
-
-      padding: 16px;
-
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-      border: 1px solid var(--border-color);
-
     }
 
-    .card-title {
+    .tab-btn {
+      position: relative;
 
-      font-size: 13px;
-
-      text-transform: uppercase;
-
-      letter-spacing: 1px;
-
-      color: #95a5a6;
-
-      margin-bottom: 16px;
-
-      font-weight: 700;
-
-    }
-
-    /* Buttons */
-
-    .action-btn {
-
-      width: 100%;
-
-      padding: 12px;
-
-      margin-bottom: 10px;
+      padding: 9px 8px;
 
       border: none;
-
       border-radius: 8px;
 
-      font-size: 15px;
+      background: transparent;
 
-      font-weight: 600;
+      color: var(--text-secondary);
+
+      font-size: 12px;
+      font-weight: 700;
 
       cursor: pointer;
 
-      transition: all 0.2s ease;
+      transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .tab-btn.active {
+      background: var(--accent-color);
+      color: white;
+
+      box-shadow:
+        0 4px 12px rgba(0,0,0,0.22);
+    }
+
+    /* =========================================================
+       MAIN
+       ========================================================= */
+
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+
+      gap: 12px;
+
+      flex: 1;
+    }
+
+    /* =========================================================
+       CARDS
+       ========================================================= */
+
+    .card {
+      background:
+        linear-gradient(
+          180deg,
+          rgba(255,255,255,0.025),
+          rgba(255,255,255,0.01)
+        ),
+        var(--surface);
+
+      border: 1px solid var(--border);
+
+      border-radius: 14px;
+
+      padding: 15px;
+
+      box-shadow: var(--shadow);
+
+      transition:
+        border-color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 13px;
+    }
+
+    .card-title {
+      font-size: 10px;
+
+      text-transform: uppercase;
+
+      letter-spacing: 1.1px;
+
+      color: var(--text-muted);
+
+      font-weight: 800;
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 22px;
+      height: 22px;
+
+      border-radius: 7px;
+
+      background: rgba(255,255,255,0.06);
+
+      border: 1px solid var(--border);
+
+      color: var(--text-secondary);
+
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    /* =========================================================
+       STEP 1 DESCRIPTION
+       ========================================================= */
+
+    #step1Title {
+      font-size: 12px;
+      line-height: 1.45;
+
+      color: var(--text-secondary);
+
+      margin-bottom: 13px;
+    }
+
+    /* =========================================================
+       BUTTONS
+       ========================================================= */
+
+    .action-btn {
+      position: relative;
+
+      width: 100%;
+
+      min-height: 42px;
+
+      padding: 10px 13px;
+
+      margin-bottom: 8px;
+
+      border-radius: 9px;
+
+      font-size: 12px;
+      font-weight: 700;
+
+      cursor: pointer;
 
       display: flex;
-
       align-items: center;
-
       justify-content: center;
 
       gap: 8px;
 
+      transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease,
+        background 0.16s ease,
+        border-color 0.16s ease;
     }
 
-    .action-btn.primary {
-
-      background-color: var(--accent-color);
-
-      color: white;
-
+    .action-btn:last-of-type {
+      margin-bottom: 0;
     }
 
-    .action-btn.primary:hover {
-
-      filter: brightness(1.1);
-
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-
+    .action-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
     }
+
+    .action-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    /* Secondary */
 
     .action-btn.secondary {
+      background: var(--surface-2);
 
-      background-color: #f8f9fa;
+      color: var(--text);
 
-      color: var(--text-color);
-
-      border: 1px solid var(--border-color);
-
+      border: 1px solid var(--border);
     }
 
-    .action-btn.secondary:hover {
+    .action-btn.secondary:hover:not(:disabled) {
+      background: var(--surface-3);
 
-      background-color: #e2e6ea;
+      border-color: var(--border-hover);
 
+      box-shadow:
+        0 5px 15px rgba(0,0,0,0.18);
     }
+
+    /* Primary */
+
+    .action-btn.primary {
+      background:
+        linear-gradient(
+          135deg,
+          var(--accent-color),
+          var(--accent-dark)
+        );
+
+      color: white;
+
+      border: 1px solid rgba(255,255,255,0.08);
+
+      box-shadow:
+        0 7px 18px rgba(0,0,0,0.25);
+    }
+
+    .action-btn.primary:hover:not(:disabled) {
+      filter: brightness(1.08);
+
+      box-shadow:
+        0 9px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Danger */
 
     .action-btn.danger {
-
-      background-color: var(--danger-color);
+      background:
+        linear-gradient(
+          135deg,
+          #ff5c68,
+          #e94350
+        );
 
       color: white;
 
-      margin-top: 16px;
+      border: none;
 
+      margin-top: 6px;
+
+      box-shadow:
+        0 7px 18px rgba(255,92,104,0.18);
     }
 
-    .action-btn.danger:hover {
+    .action-btn.danger:hover:not(:disabled) {
+      filter: brightness(1.08);
 
-      background-color: #c0392b;
-
-      box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
-
+      box-shadow:
+        0 9px 24px rgba(255,92,104,0.25);
     }
+
+    /* Disabled */
 
     .action-btn:disabled {
+      background: var(--surface-2);
 
-      background-color: #bdc3c7;
+      color: var(--text-muted);
 
-      color: white;
+      border: 1px solid var(--border);
 
       cursor: not-allowed;
 
-      transform: none;
-
       box-shadow: none;
 
-      filter: none;
+      opacity: 0.55;
 
+      transform: none;
     }
 
-    /* Checkbox */
+    /* =========================================================
+       NOTES
+       ========================================================= */
 
-    .option-group {
-
-      margin-bottom: 16px;
-
-    }
-
-    .checkbox-label {
-
+    .note {
       display: flex;
 
-      align-items: center;
+      align-items: flex-start;
 
-      font-size: 13px;
+      justify-content: center;
 
-      color: #555;
+      gap: 5px;
 
-      cursor: pointer;
+      font-size: 10px !important;
 
+      line-height: 1.45;
+
+      color: var(--text-muted) !important;
+
+      margin-top: 9px !important;
+
+      text-align: center;
     }
 
-    .checkbox-input {
-
-      margin-right: 10px;
-
-      width: 18px;
-
-      height: 18px;
-
-      accent-color: var(--accent-color);
-
-      cursor: pointer;
-
-    }
-
-    /* Progress / Counter */
+    /* =========================================================
+       PROGRESS
+       ========================================================= */
 
     .progress-card {
+      position: relative;
 
-      background: linear-gradient(135deg, var(--accent-color), #3498db);
-
-      color: white;
+      overflow: hidden;
 
       text-align: center;
 
-      padding: 24px;
+      padding: 19px;
 
+      color: white;
+
+      background:
+        radial-gradient(
+          circle at 50% 120%,
+          rgba(255,255,255,0.18),
+          transparent 55%
+        ),
+        linear-gradient(
+          135deg,
+          var(--accent-color),
+          var(--accent-dark)
+        );
+
+      border: none;
+
+      box-shadow:
+        0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .progress-card::before {
+      content: "";
+
+      position: absolute;
+
+      width: 140px;
+      height: 140px;
+
+      top: -75px;
+      right: -55px;
+
+      border-radius: 50%;
+
+      border: 1px solid rgba(255,255,255,0.12);
     }
 
     .progress-card .card-title {
+      position: relative;
 
-      color: rgba(255,255,255,0.8);
+      color: rgba(255,255,255,0.72);
 
+      margin-bottom: 9px;
     }
 
     .counter-display {
+      position: relative;
 
-      font-size: 56px;
+      font-size: 48px;
 
       font-weight: 900;
 
       line-height: 1;
 
-      margin-bottom: 8px;
+      letter-spacing: -2px;
 
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: 7px;
 
+      text-shadow:
+        0 3px 10px rgba(0,0,0,0.2);
     }
 
     .counter-label {
+      position: relative;
 
-      font-size: 12px;
+      font-size: 9px;
 
       text-transform: uppercase;
 
-      letter-spacing: 2px;
+      letter-spacing: 1.8px;
 
-      opacity: 0.9;
+      opacity: 0.78;
 
-      font-weight: 600;
-
+      font-weight: 800;
     }
 
-    /* Status Area */
+    /* =========================================================
+       STATUS
+       ========================================================= */
 
     .status-area {
+      min-height: 35px;
 
       margin-top: auto;
 
-      padding-top: 20px;
+      padding: 10px 8px 2px;
 
-      border-top: 1px solid var(--border-color);
+      border-top: 1px solid var(--border);
 
-      font-size: 12px;
+      font-size: 10px;
 
-      color: #7f8c8d;
+      color: var(--text-muted);
 
       text-align: center;
 
-      min-height: 40px;
-
       display: flex;
-
-      justify-content: center;
-
       align-items: center;
-
+      justify-content: center;
     }
 
     .status-msg.error {
+      color: var(--danger);
 
-      color: var(--danger-color);
-
-      font-weight: 600;
-
+      font-weight: 700;
     }
 
     .status-msg.warning {
+      color: var(--warning);
 
-      color: var(--warning-color);
-
-      font-weight: 600;
-
+      font-weight: 700;
     }
 
-    /* Icons */
+    /* =========================================================
+       ICONS
+       ========================================================= */
 
     .icon::before {
+      display: inline-flex;
 
-      display: inline-block;
+      align-items: center;
+      justify-content: center;
 
-      width: 1em;
+      width: 18px;
+
+      font-size: 13px;
 
       text-align: center;
-
     }
 
     .icon-eye::before {
-
-      content: '👁️';
-
+      content: "◉";
     }
 
     .icon-trash::before {
-
-      content: '🗑️';
-
+      content: "✦";
     }
 
     .icon-stop::before {
-
-      content: '🛑';
-
+      content: "■";
     }
 
     .icon-alert::before {
-
-      content: '⚠️';
-
+      content: "●";
+      font-size: 7px;
+      margin-top: 2px;
     }
 
-    /* Smooth hiding */
+    /* =========================================================
+       HIDDEN
+       ========================================================= */
 
     .hidden {
-
       display: none !important;
-
     }
 
-  </style>
+    /* =========================================================
+       SCROLLBAR
+       ========================================================= */
 
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.12);
+
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.2);
+    }
+  </style>
 </head>
 
 <body class="theme-facebook">
 
+  <!-- =======================================================
+       HEADER
+       ======================================================== -->
+
   <header class="app-header">
 
-    <div class="app-title">ZeroTrace</div>
+    <div class="brand">
 
-    <div
+      <div class="brand-icon">
+        Z
+      </div>
 
-      class="subtitle"
+      <div>
+        <div class="app-title">
+          ZeroTrace
+        </div>
 
-      style="font-size: 12px; color: #7f8c8d;"
+        <div class="app-version">
+          SOCIAL ACTIVITY CLEANUP
+        </div>
+      </div>
 
-    >
+    </div>
 
-      Social Media Bulk Activity Deletion
-
+    <div class="header-status">
+      <span class="status-dot"></span>
+      Ready
     </div>
 
   </header>
 
 
-  <!-- Platform Selector -->
+  <!-- =======================================================
+       PLATFORM SELECTOR
+       ======================================================== -->
 
   <div class="platform-tabs">
 
     <button
-
       id="platformFacebook"
-
       class="tab-btn active"
-
     >
-
       Facebook
-
     </button>
 
     <button
-
       id="platformTwitter"
-
       class="tab-btn"
-
     >
-
-      X (Twitter)
-
+      X / Twitter
     </button>
 
   </div>
 
+
+  <!-- =======================================================
+       MAIN CONTROL PANEL
+       ======================================================== -->
 
   <div class="control-panel">
 
 
-    <!-- Step 1: Navigation -->
+    <!-- =====================================================
+         STEP 1
+         ====================================================== -->
 
     <div class="card">
 
+      <div class="card-header">
+
+        <div class="card-title">
+          Navigation
+        </div>
+
+        <div class="step-badge">
+          1
+        </div>
+
+      </div>
+
+
       <div
-
-        class="card-title"
-
         id="step1Title"
-
       >
-
-        Step 1: If not already logged in to Facebook, log in and reopen ZeroTrace.
-
+        If not already logged in to Facebook, log in.
       </div>
 
 
-      <button
+      <!-- View Comments -->
 
+      <button
         id="navigateComments"
-
         class="action-btn secondary icon icon-eye"
-
       >
-
         View Comments
-
       </button>
 
 
-      <button
+      <!-- View Reactions -->
 
+      <button
         id="navigateReactions"
-
         class="action-btn secondary icon icon-eye"
-
       >
-
         View Reactions
-
       </button>
 
 
-      <!-- Twitter/X only: View Replies -->
+      <!-- Twitter/X only -->
 
       <button
-
         id="navigateReplies"
-
         class="action-btn secondary icon icon-eye hidden"
-
       >
-
         View Replies
-
       </button>
 
-      <!-- Twitter/X only: View Reposts -->
+
+      <!-- Twitter/X only -->
 
       <button
-
         id="navigateReposts"
-
         class="action-btn secondary icon icon-eye hidden"
-
       >
-
         View Reposts
-
       </button>
+
 
       <div
-
         class="note"
-
         id="navigationNote"
-
-        style="font-size: 11px; color: #95a5a6; margin-top: 10px; text-align: center;"
-
       >
-
         <span class="icon icon-alert"></span>
-
-        After you make a selection, you may need to reopen the ZeroTrace extension.
 
       </div>
 
     </div>
 
 
-    <!-- Step 2: Delete -->
+    <!-- =====================================================
+         STEP 2
+         ====================================================== -->
 
     <div class="card">
 
-      <div class="card-title">
+      <div class="card-header">
 
-        Step 2: Delete
+        <div class="card-title">
+          Cleanup
+        </div>
+
+        <div class="step-badge">
+          2
+        </div>
 
       </div>
 
 
+      <!-- Start -->
+
       <button
-
         id="startDeletion"
-
         class="action-btn primary icon icon-trash"
-
       >
-
         Start Deleting
-
       </button>
 
 
+      <!-- Stop -->
+
       <button
-
         id="stopDeletion"
-
         class="action-btn danger icon icon-stop hidden"
-
         disabled
-
       >
-
         Stop Deleting
-
       </button>
 
 
       <div
-
         class="note"
-
-        style="font-size: 11px; color: #95a5a6; margin-top: 10px; text-align: center;"
-
       >
-
         <span class="icon icon-alert"></span>
 
-        Wait for page to load before starting. Don't close popup.
-
+        Wait for the page to load before starting.
+        Keep this popup open.
       </div>
 
     </div>
 
 
-    <!-- Progress Section -->
+    <!-- =====================================================
+         PROGRESS
+         ====================================================== -->
 
     <div
-
       class="card progress-card hidden"
-
       id="progressSection"
-
     >
 
       <div class="card-title">
-
         Erasing Progress
-
       </div>
 
       <div
-
         id="deleteCounter"
-
         class="counter-display"
-
       >
-
         0
-
       </div>
 
       <div class="counter-label">
-
         Items Deleted
-
       </div>
 
     </div>
 
 
-    <!-- Status / Error Messages -->
+    <!-- =====================================================
+         STATUS
+         ====================================================== -->
 
     <div
-
       class="status-area"
-
       id="statusMessage"
-
     >
-
       Ready
-
     </div>
 
   </div>
 
 
-  <!-- Load platform modules first -->
+  <!-- =======================================================
+       PLATFORM MODULES
+       ======================================================== -->
 
   <script src="platforms/facebook.js"></script>
-
   <script src="platforms/twitter.js"></script>
-
   <script src="platforms/registry.js"></script>
 
-  <!-- Load main popup script -->
+  <!-- Main popup script -->
 
   <script src="popup.js"></script>
 
 </body>
-
 </html>
