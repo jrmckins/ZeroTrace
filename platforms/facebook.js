@@ -6,12 +6,16 @@
  */
 
 window.FacebookPlatform = window.FacebookPlatform || {
+
   id: 'facebook',
   name: 'Facebook',
   domain: 'facebook.com',
 
-  getUrls() {
+  async getUrls(tab) {
+
     return {
+      posts: null,
+
       comments:
         'https://www.facebook.com/me/allactivity?activity_history=false&category_key=COMMENTSCLUSTER',
 
@@ -20,8 +24,400 @@ window.FacebookPlatform = window.FacebookPlatform || {
     };
   },
 
+  async navigateToPosts(tab) {
+
+    if (!tab || !tab.id) {
+      throw new Error('Could not find active tab');
+    }
+
+    console.log(
+      '[ZeroTrace] Navigating to Facebook profile...'
+    );
+
+    // Capture the tab's current URL BEFORE navigating so we can tell
+    // whether chrome.tabs.get is still reporting stale status from the
+    // previous page (a common race right after tabs.update fires).
+    let previousUrl = tab.url || '';
+
+    await chrome.tabs.update(tab.id, {
+      url: 'https://www.facebook.com/me'
+    });
+
+    console.log(
+      '[ZeroTrace] Waiting for Facebook profile to load...'
+    );
+
+    // Wait for the tab to finish loading. We require BOTH status ===
+    // 'complete' AND a URL that has actually changed away from the
+    // pre-navigation URL (or already points at /me), so we don't fall
+    // through on stale status from the page we just left.
+    for (let i = 0; i < 30; i++) {
+
+      try {
+
+        const currentTab =
+          await chrome.tabs.get(tab.id);
+
+        const urlChanged =
+          !previousUrl ||
+          currentTab.url !== previousUrl;
+
+        const looksLikeProfile =
+          !!currentTab.url &&
+          currentTab.url.includes('facebook.com');
+
+        if (
+          currentTab.status === 'complete' &&
+          urlChanged &&
+          looksLikeProfile
+        ) {
+          break;
+        }
+
+      } catch (error) {
+
+        console.warn(
+          '[ZeroTrace] Could not check Facebook tab status:',
+          error
+        );
+      }
+
+      await new Promise(resolve =>
+        setTimeout(resolve, 500)
+      );
+    }
+
+    // Give Facebook's React interface time to render.
+    await new Promise(resolve =>
+      setTimeout(resolve, 2000)
+    );
+
+    // Look for Manage posts repeatedly because Facebook
+    // may render it after the initial page load.
+    for (
+      let attempt = 0;
+      attempt < 30;
+      attempt++
+    ) {
+
+      try {
+
+        const results =
+          await chrome.scripting.executeScript({
+
+            target: {
+              tabId: tab.id
+            },
+
+            func: () => {
+
+              function cleanText(value) {
+
+                return (value || '')
+                  .trim()
+                  .replace(/\s+/g, ' ')
+                  .toLowerCase();
+              }
+
+              // A match is either:
+              //  - visible text that STARTS WITH "manage post" (tolerates
+              //    trailing hidden a11y text Facebook sometimes appends
+              //    inside the same element, e.g. "Manage postsSee all..."), or
+              //  - an aria-label containing "manage post" (Facebook often
+              //    sets this even when visible text also exists).
+              function isManagePostsMatch(element) {
+
+                const text =
+                  cleanText(
+                    element.textContent
+                  );
+
+                if (
+                  text.startsWith('manage post')
+                ) {
+                  return true;
+                }
+
+                const ariaLabel =
+                  cleanText(
+                    element.getAttribute
+                      ? element.getAttribute('aria-label')
+                      : ''
+                  );
+
+                return ariaLabel.includes(
+                  'manage post'
+                );
+              }
+
+              const elements =
+                Array.from(
+                  document.querySelectorAll(
+                    'span, div, button, a, [role="button"], [role="menuitem"], [aria-label]'
+                  )
+                );
+
+              const candidates =
+                elements.filter(element => {
+
+                  const rect =
+                    element.getBoundingClientRect();
+
+                  const style =
+                    window.getComputedStyle(
+                      element
+                    );
+
+                  const visible =
+                    rect.width > 0 &&
+                    rect.height > 0 &&
+                    style.display !== 'none' &&
+                    style.visibility !== 'hidden';
+
+                  return (
+                    visible &&
+                    isManagePostsMatch(element)
+                  );
+                });
+
+              // Prefer the SMALLEST matching element (most likely the
+              // innermost text/label node), since matching on
+              // startsWith/includes can pick up large ancestor
+              // containers too.
+              candidates.sort((a, b) => {
+
+                const areaA =
+                  a.getBoundingClientRect().width *
+                  a.getBoundingClientRect().height;
+
+                const areaB =
+                  b.getBoundingClientRect().width *
+                  b.getBoundingClientRect().height;
+
+                return areaA - areaB;
+              });
+
+              const textElement =
+                candidates[0];
+
+              if (!textElement) {
+
+                return {
+                  found: false,
+                  clicked: false
+                };
+              }
+
+              console.log(
+                '[ZeroTrace] Found visible Facebook "Manage posts" text.'
+              );
+
+              // The span containing "Manage posts" may not itself
+              // be the clickable element. Walk upward until we find
+              // the Facebook control that owns the text.
+              let clickable =
+                textElement;
+
+              for (
+                let level = 0;
+                level < 10;
+                level++
+              ) {
+
+                if (!clickable) {
+                  break;
+                }
+
+                const tag =
+                  clickable.tagName
+                    ? clickable.tagName.toLowerCase()
+                    : '';
+
+                const role =
+                  clickable.getAttribute
+                    ? clickable.getAttribute('role')
+                    : '';
+
+                const tabIndex =
+                  clickable.getAttribute
+                    ? clickable.getAttribute('tabindex')
+                    : null;
+
+                if (
+                  tag === 'button' ||
+                  tag === 'a' ||
+                  role === 'button' ||
+                  role === 'menuitem' ||
+                  tabIndex === '0'
+                ) {
+                  break;
+                }
+
+                clickable =
+                  clickable.parentElement;
+              }
+
+              if (!clickable) {
+
+                return {
+                  found: true,
+                  clicked: false
+                };
+              }
+
+              console.log(
+                '[ZeroTrace] Facebook clickable Manage Posts element:',
+                clickable
+              );
+
+              clickable.scrollIntoView({
+                behavior: 'instant',
+                block: 'center'
+              });
+
+              // Trigger the same basic pointer/mouse sequence
+              // a real user interaction would generate.
+              try {
+
+                clickable.dispatchEvent(
+                  new PointerEvent(
+                    'pointerover',
+                    {
+                      bubbles: true,
+                      cancelable: true,
+                      view: window
+                    }
+                  )
+                );
+
+                clickable.dispatchEvent(
+                  new PointerEvent(
+                    'pointerdown',
+                    {
+                      bubbles: true,
+                      cancelable: true,
+                      view: window,
+                      button: 0,
+                      buttons: 1
+                    }
+                  )
+                );
+
+                clickable.dispatchEvent(
+                  new MouseEvent(
+                    'mousedown',
+                    {
+                      bubbles: true,
+                      cancelable: true,
+                      view: window,
+                      button: 0,
+                      buttons: 1
+                    }
+                  )
+                );
+
+                clickable.dispatchEvent(
+                  new MouseEvent(
+                    'mouseup',
+                    {
+                      bubbles: true,
+                      cancelable: true,
+                      view: window,
+                      button: 0,
+                      buttons: 0
+                    }
+                  )
+                );
+
+                clickable.dispatchEvent(
+                  new PointerEvent(
+                    'pointerup',
+                    {
+                      bubbles: true,
+                      cancelable: true,
+                      view: window,
+                      button: 0,
+                      buttons: 0
+                    }
+                  )
+                );
+
+              } catch (pointerError) {
+
+                console.log(
+                  '[ZeroTrace] Pointer events unavailable, using click().'
+                );
+              }
+
+              clickable.click();
+
+              return {
+                found: true,
+                clicked: true,
+                tag: clickable.tagName,
+                role: clickable.getAttribute('role'),
+                text: cleanText(
+                  clickable.textContent
+                )
+              };
+            }
+          });
+
+        const result =
+          results &&
+          results[0] &&
+          results[0].result;
+
+        console.log(
+          '[ZeroTrace] Manage Posts search result:',
+          result
+        );
+
+        if (
+          result &&
+          result.found &&
+          result.clicked
+        ) {
+
+          console.log(
+            '[ZeroTrace] Successfully clicked Facebook "Manage posts".'
+          );
+
+          return true;
+        }
+
+      } catch (error) {
+
+        console.warn(
+          '[ZeroTrace] Error looking for Facebook "Manage posts":',
+          error
+        );
+      }
+
+      console.log(
+        `[ZeroTrace] Waiting for Facebook "Manage posts"... attempt ${attempt + 1}/30`
+      );
+
+      await new Promise(resolve =>
+        setTimeout(resolve, 1000)
+      );
+    }
+
+    console.error(
+      '[ZeroTrace] Could not find Facebook "Manage posts".'
+    );
+
+    return false;
+  },
+
   getPageDetection() {
+
     return {
+
+      posts: (url) =>
+        url.includes('facebook.com') &&
+        !url.includes('allactivity'),
+
       comments: (url) =>
         url.includes('facebook.com') &&
         url.includes('allactivity') &&
@@ -50,10 +446,16 @@ window.FacebookPlatform = window.FacebookPlatform || {
   },
 
   getCleanupFunction() {
-    return async function cleanupActivities(type, excludeOwnPosts) {
+
+    return async function cleanupActivities(
+      type,
+      excludeOwnPosts
+    ) {
 
       const initialStorage =
-        await chrome.storage.local.get(['deleteCounter']);
+        await chrome.storage.local.get([
+          'deleteCounter'
+        ]);
 
       let deletedCount =
         initialStorage.deleteCounter || 0;
@@ -65,36 +467,40 @@ window.FacebookPlatform = window.FacebookPlatform || {
       window.stopDeleting = false;
 
       const wait = (ms) =>
-        new Promise(resolve => setTimeout(resolve, ms));
+        new Promise(resolve =>
+          setTimeout(resolve, ms)
+        );
 
-      // ============================================================
-      // POPUP COMMUNICATION
-      // ============================================================
+      function updatePopup(
+        count,
+        finished = false
+      ) {
 
-      function updatePopup(count, finished = false) {
         try {
+
           chrome.runtime.sendMessage({
+
             type: finished
               ? 'finished'
               : 'updateCounter',
 
             count: count
           });
+
         } catch (e) {}
       }
 
-      // ============================================================
-      // VISIBILITY
-      // ============================================================
-
       function isVisible(element) {
+
         if (!element) return false;
 
         const rect =
           element.getBoundingClientRect();
 
         const style =
-          window.getComputedStyle(element);
+          window.getComputedStyle(
+            element
+          );
 
         return (
           rect.width > 0 &&
@@ -104,35 +510,41 @@ window.FacebookPlatform = window.FacebookPlatform || {
         );
       }
 
-      // ============================================================
-      // CLICK HELPER
-      // ============================================================
-
       function clickElement(element) {
+
         if (!element) return false;
 
         try {
+
           element.scrollIntoView({
             behavior: 'instant',
             block: 'center'
           });
+
         } catch (e) {}
 
         try {
+
           element.dispatchEvent(
-            new MouseEvent('mousedown', {
-              bubbles: true,
-              cancelable: true,
-              view: window
-            })
+            new MouseEvent(
+              'mousedown',
+              {
+                bubbles: true,
+                cancelable: true,
+                view: window
+              }
+            )
           );
 
           element.dispatchEvent(
-            new MouseEvent('mouseup', {
-              bubbles: true,
-              cancelable: true,
-              view: window
-            })
+            new MouseEvent(
+              'mouseup',
+              {
+                bubbles: true,
+                cancelable: true,
+                view: window
+              }
+            )
           );
 
           element.click();
@@ -142,31 +554,33 @@ window.FacebookPlatform = window.FacebookPlatform || {
         } catch (e) {
 
           try {
+
             element.click();
+
             return true;
+
           } catch (e2) {
+
             return false;
           }
         }
       }
 
-      // ============================================================
-      // FIND FACEBOOK "ALL" CHECKBOX
-      // ============================================================
-
       function findSelectAllCheckbox() {
 
-        // Primary Facebook selector
         const checkbox =
           document.querySelector(
             'input[name="comet_activity_log_select_all_checkbox"]'
           );
 
-        if (checkbox && isVisible(checkbox)) {
+        if (
+          checkbox &&
+          isVisible(checkbox)
+        ) {
+
           return checkbox;
         }
 
-        // Fallback: look for visible checkbox inputs
         const checkboxes =
           Array.from(
             document.querySelectorAll(
@@ -174,7 +588,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
             )
           );
 
-        for (const candidate of checkboxes) {
+        for (
+          const candidate of checkboxes
+        ) {
 
           if (!isVisible(candidate)) {
             continue;
@@ -182,7 +598,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
 
           const ariaLabel =
             (
-              candidate.getAttribute('aria-label') ||
+              candidate.getAttribute(
+                'aria-label'
+              ) ||
               ''
             ).toLowerCase();
 
@@ -190,23 +608,24 @@ window.FacebookPlatform = window.FacebookPlatform || {
             (
               candidate.parentElement?.textContent ||
               ''
-            ).trim().toLowerCase();
+            )
+              .trim()
+              .toLowerCase();
 
           if (
             ariaLabel === 'all' ||
-            ariaLabel.includes('select all') ||
+            ariaLabel.includes(
+              'select all'
+            ) ||
             parentText === 'all'
           ) {
+
             return candidate;
           }
         }
 
         return null;
       }
-
-      // ============================================================
-      // FIND BULK REMOVE BUTTON
-      // ============================================================
 
       function findVisibleRemoveControls() {
 
@@ -217,28 +636,26 @@ window.FacebookPlatform = window.FacebookPlatform || {
             )
           );
 
-        return candidates.filter(element => {
+        return candidates.filter(
+          element => {
 
-          if (!isVisible(element)) {
-            return false;
+            if (!isVisible(element)) {
+              return false;
+            }
+
+            const text =
+              element.textContent
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            return (
+              text === 'remove' ||
+              text === 'delete'
+            );
           }
-
-          const text =
-            element.textContent
-              .trim()
-              .replace(/\s+/g, ' ')
-              .toLowerCase();
-
-          return (
-            text === 'remove' ||
-            text === 'delete'
-          );
-        });
+        );
       }
-
-      // ============================================================
-      // WAIT FOR CHECKBOX STATE
-      // ============================================================
 
       async function waitForCheckboxChecked(
         checkbox,
@@ -257,6 +674,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
             checkbox &&
             checkbox.checked
           ) {
+
             return true;
           }
 
@@ -266,17 +684,15 @@ window.FacebookPlatform = window.FacebookPlatform || {
         return false;
       }
 
-      // ============================================================
-      // BULK DELETE COMMENTS
-      // ============================================================
-
       async function bulkDeleteComments() {
 
         console.log(
           'ZeroTrace: Starting Facebook bulk comment deletion'
         );
 
-        while (!window.stopDeleting) {
+        while (
+          !window.stopDeleting
+        ) {
 
           const checkbox =
             findSelectAllCheckbox();
@@ -317,10 +733,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
 
           noChangeCount = 0;
 
-          // --------------------------------------------------------
-          // SELECT ALL
-          // --------------------------------------------------------
-
           if (!checkbox.checked) {
 
             console.log(
@@ -328,10 +740,13 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             if (
-              !clickElement(checkbox)
+              !clickElement(
+                checkbox
+              )
             ) {
 
               await wait(1000);
+
               continue;
             }
 
@@ -347,13 +762,10 @@ window.FacebookPlatform = window.FacebookPlatform || {
               );
 
               await wait(1000);
+
               continue;
             }
           }
-
-          // --------------------------------------------------------
-          // FIND REMOVE
-          // --------------------------------------------------------
 
           const removeButtons =
             findVisibleRemoveControls();
@@ -367,12 +779,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
           ) {
 
             await wait(1500);
+
             continue;
           }
-
-          // --------------------------------------------------------
-          // CLICK BULK REMOVE
-          // --------------------------------------------------------
 
           console.log(
             'ZeroTrace: Clicking bulk Remove'
@@ -385,14 +794,11 @@ window.FacebookPlatform = window.FacebookPlatform || {
           ) {
 
             await wait(1000);
+
             continue;
           }
 
           await wait(1200);
-
-          // --------------------------------------------------------
-          // CONFIRM REMOVE
-          // --------------------------------------------------------
 
           const confirmButtons =
             findVisibleRemoveControls();
@@ -406,6 +812,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
+
             continue;
           }
 
@@ -425,6 +832,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           ) {
 
             await wait(1000);
+
             continue;
           }
 
@@ -437,7 +845,8 @@ window.FacebookPlatform = window.FacebookPlatform || {
           );
 
           await chrome.storage.local.set({
-            deleteCounter: deletedCount
+            deleteCounter:
+              deletedCount
           });
 
           console.log(
@@ -454,25 +863,15 @@ window.FacebookPlatform = window.FacebookPlatform || {
         );
       }
 
-      // ============================================================
-      // BULK DELETE REACTIONS
-      //
-      // Facebook's Likes and reactions page has the same
-      // "All" selection mechanism. We deliberately do NOT
-      // process individual "More options" menus anymore.
-      // ============================================================
-
       async function bulkDeleteReactions() {
 
         console.log(
           'ZeroTrace: Starting Facebook BULK reaction deletion'
         );
 
-        while (!window.stopDeleting) {
-
-          // --------------------------------------------------------
-          // FIND "ALL"
-          // --------------------------------------------------------
+        while (
+          !window.stopDeleting
+        ) {
 
           const checkbox =
             findSelectAllCheckbox();
@@ -513,10 +912,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
 
           noChangeCount = 0;
 
-          // --------------------------------------------------------
-          // SELECT ALL REACTIONS
-          // --------------------------------------------------------
-
           if (!checkbox.checked) {
 
             console.log(
@@ -524,7 +919,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             if (
-              !clickElement(checkbox)
+              !clickElement(
+                checkbox
+              )
             ) {
 
               console.log(
@@ -532,6 +929,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
               );
 
               await wait(1000);
+
               continue;
             }
 
@@ -548,6 +946,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
               );
 
               await wait(1000);
+
               continue;
             }
 
@@ -556,13 +955,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
           }
 
-          // Give Facebook time to update
-          // the bulk action toolbar.
           await wait(1000);
-
-          // --------------------------------------------------------
-          // FIND BULK REMOVE
-          // --------------------------------------------------------
 
           const removeButtons =
             findVisibleRemoveControls();
@@ -580,12 +973,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1500);
+
             continue;
           }
-
-          // --------------------------------------------------------
-          // CLICK BULK REMOVE
-          // --------------------------------------------------------
 
           console.log(
             'ZeroTrace: Clicking bulk Remove for reactions'
@@ -602,14 +992,11 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
+
             continue;
           }
 
           await wait(1500);
-
-          // --------------------------------------------------------
-          // CONFIRM REMOVE
-          // --------------------------------------------------------
 
           const confirmButtons =
             findVisibleRemoveControls();
@@ -623,6 +1010,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
+
             continue;
           }
 
@@ -646,12 +1034,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
+
             continue;
           }
-
-          // --------------------------------------------------------
-          // WAIT FOR FACEBOOK TO PROCESS
-          // --------------------------------------------------------
 
           await wait(3000);
 
@@ -662,15 +1047,14 @@ window.FacebookPlatform = window.FacebookPlatform || {
           );
 
           await chrome.storage.local.set({
-            deleteCounter: deletedCount
+            deleteCounter:
+              deletedCount
           });
 
           console.log(
             `ZeroTrace: Completed bulk reaction removal operation #${deletedCount}`
           );
 
-          // Facebook rebuilds the activity list after
-          // bulk deletion. Reload to get the next batch.
           console.log(
             'ZeroTrace: Reloading Facebook reactions page...'
           );
@@ -681,45 +1065,45 @@ window.FacebookPlatform = window.FacebookPlatform || {
         }
 
         alert(
-          `Deletion stopped. Completed ${deletedCount} bulk reaction operations.`
+          `Deletion stopped. Completed ${deletedCount} bulk removal operations.`
         );
       }
 
-      // ============================================================
-      // START CLEANUP
-      // ============================================================
+      if (
+        type === 'comments'
+      ) {
 
-      if (type === 'comments') {
+        bulkDeleteComments().catch(
+          err => {
 
-        bulkDeleteComments().catch(err => {
+            console.error(
+              'ZeroTrace Facebook bulk comment deletion error:',
+              err
+            );
 
-          console.error(
-            'ZeroTrace Facebook bulk comment deletion error:',
-            err
-          );
+            alert(
+              `Error occurred: ${err.message}`
+            );
+          }
+        );
 
-          alert(
-            `Error occurred: ${err.message}`
-          );
-        });
+      } else if (
+        type === 'reactions'
+      ) {
 
-      } else if (type === 'reactions') {
+        bulkDeleteReactions().catch(
+          err => {
 
-        // IMPORTANT:
-        // Reactions now use Facebook's "All" option.
-        // They are NOT deleted individually.
+            console.error(
+              'ZeroTrace Facebook bulk reaction deletion error:',
+              err
+            );
 
-        bulkDeleteReactions().catch(err => {
-
-          console.error(
-            'ZeroTrace Facebook bulk reaction deletion error:',
-            err
-          );
-
-          alert(
-            `Error occurred: ${err.message}`
-          );
-        });
+            alert(
+              `Error occurred: ${err.message}`
+            );
+          }
+        );
 
       } else {
 
@@ -734,7 +1118,11 @@ window.FacebookPlatform = window.FacebookPlatform || {
     };
   }
 };
-// Register Facebook with the ZeroTrace platform registry
-if (typeof PlatformRegistry !== 'undefined') {
-  PlatformRegistry.register(window.FacebookPlatform);
+
+if (
+  typeof PlatformRegistry !== 'undefined'
+) {
+  PlatformRegistry.register(
+    window.FacebookPlatform
+  );
 }

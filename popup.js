@@ -10,7 +10,6 @@ let currentPlatform = 'facebook';
 // ============================================================================
 
 function showStatus(message, type) {
-
   // Your HTML uses statusMessage, not status.
   const status =
     document.getElementById('statusMessage');
@@ -25,7 +24,6 @@ function showStatus(message, type) {
 }
 
 function showProgress() {
-
   const progressSection =
     document.getElementById('progressSection');
 
@@ -36,7 +34,6 @@ function showProgress() {
 }
 
 function updateCounter(count) {
-
   const counter =
     document.getElementById('deleteCounter');
 
@@ -50,7 +47,6 @@ function updateCounter(count) {
 }
 
 function showPageStatus(message, isOnPage) {
-
   // popup.html currently does not contain pageStatus.
   // Keep this function safe in case it is added later.
   const pageStatus =
@@ -61,7 +57,6 @@ function showPageStatus(message, isOnPage) {
   }
 
   pageStatus.textContent = message;
-
   pageStatus.className = isOnPage
     ? 'page-status on-page'
     : 'page-status not-on-page';
@@ -70,7 +65,6 @@ function showPageStatus(message, isOnPage) {
 }
 
 function hidePageStatus() {
-
   const pageStatus =
     document.getElementById('pageStatus');
 
@@ -84,7 +78,6 @@ function hidePageStatus() {
 // ============================================================================
 
 function updateDeletionUI(isDeleting) {
-
   const startButton =
     document.getElementById('startDeletion');
 
@@ -92,7 +85,6 @@ function updateDeletionUI(isDeleting) {
     document.getElementById('stopDeletion');
 
   if (startButton) {
-
     startButton.classList.toggle(
       'hidden',
       isDeleting
@@ -102,7 +94,6 @@ function updateDeletionUI(isDeleting) {
   }
 
   if (stopButton) {
-
     stopButton.classList.toggle(
       'hidden',
       !isDeleting
@@ -117,7 +108,6 @@ function updateDeletionUI(isDeleting) {
 // ============================================================================
 
 function updatePlatformUI() {
-
   const step1Title =
     document.getElementById('step1Title');
 
@@ -137,73 +127,58 @@ function updatePlatformUI() {
     document.getElementById('navigationNote');
 
   if (currentPlatform === 'twitter') {
-
     if (step1Title) {
-
       step1Title.textContent =
         'Step 2: If not already logged in to Twitter, log in.';
     }
 
     if (commentsButton) {
-
       commentsButton.textContent =
         'View Posts';
     }
 
     if (reactionsButton) {
-
       reactionsButton.textContent =
         'View Likes';
     }
 
     if (repliesButton) {
-
       repliesButton.classList.remove('hidden');
     }
 
     if (repostsButton) {
-
       repostsButton.classList.remove('hidden');
     }
 
     if (navigationNote) {
-
       navigationNote.innerHTML =
         '<span class="icon icon-alert"></span>';
     }
-
   } else {
-
     if (step1Title) {
-
       step1Title.textContent =
         'Step 2: If not already logged in to Facebook, log in.';
     }
 
     if (commentsButton) {
-
       commentsButton.textContent =
         'View Comments';
     }
 
     if (reactionsButton) {
-
       reactionsButton.textContent =
         'View Reactions';
     }
 
     if (repliesButton) {
-
       repliesButton.classList.add('hidden');
     }
 
     if (repostsButton) {
-
       repostsButton.classList.add('hidden');
     }
 
     if (navigationNote) {
-
       navigationNote.innerHTML =
         '<span class="icon icon-alert"></span> ';
     }
@@ -215,9 +190,7 @@ function updatePlatformUI() {
 // ============================================================================
 
 function setPlatform(platformId) {
-
   if (!PlatformRegistry.has(platformId)) {
-
     console.error(
       `[ZeroTrace] Platform ${platformId} not found`
     );
@@ -237,9 +210,7 @@ function setPlatform(platformId) {
   document
     .querySelectorAll('.tab-btn')
     .forEach(btn => {
-
       btn.classList.remove('active');
-
     });
 
   const capitalizedId =
@@ -252,17 +223,14 @@ function setPlatform(platformId) {
     );
 
   if (button) {
-
     button.classList.add('active');
   }
 
   updatePlatformUI();
-
   checkCurrentPage();
 }
 
 function getCurrentPlatform() {
-
   return PlatformRegistry.get(currentPlatform);
 }
 
@@ -271,7 +239,6 @@ function getCurrentPlatform() {
 // ============================================================================
 
 async function checkCurrentPage() {
-
   const [tab] =
     await chrome.tabs.query({
       active: true,
@@ -295,61 +262,48 @@ async function checkCurrentPage() {
   if (
     detection.comments(tab.url)
   ) {
-
     showPageStatus(
       `✓ You are on the ${platform.name} Comments page`,
       true
     );
-
   } else if (
     detection.reactions(tab.url)
   ) {
-
     showPageStatus(
       `✓ You are on the ${platform.name} Reactions page`,
       true
     );
-
   } else if (
     detection.replies &&
     detection.replies(tab.url)
   ) {
-
     showPageStatus(
       `✓ You are on the ${platform.name} Replies page`,
       true
     );
-
   } else if (
     detection.reposts &&
     detection.reposts(tab.url)
   ) {
-
     showPageStatus(
       `✓ You are on the ${platform.name} Reposts page`,
       true
     );
-
   } else if (
     detection.anyActivity(tab.url)
   ) {
-
     showPageStatus(
       `✓ You are on a ${platform.name} activity page`,
       true
     );
-
   } else if (
     detection.onSite(tab.url)
   ) {
-
     showPageStatus(
       'Navigate using Step 3',
       false
     );
-
   } else {
-
     showPageStatus(
       `Not on ${platform.name}`,
       false
@@ -362,7 +316,6 @@ async function checkCurrentPage() {
 // ============================================================================
 
 async function navigateToActivityPage(type) {
-
   const [tab] =
     await chrome.tabs.query({
       active: true,
@@ -370,12 +323,10 @@ async function navigateToActivityPage(type) {
     });
 
   if (!tab || !tab.id) {
-
     showStatus(
       'Could not find active tab',
       'error'
     );
-
     return;
   }
 
@@ -383,11 +334,57 @@ async function navigateToActivityPage(type) {
     getCurrentPlatform();
 
   if (!platform) {
-
     showStatus(
       'Platform not found',
       'error'
     );
+    return;
+  }
+
+  // ==========================================================================
+  // Facebook Posts navigation
+  // ==========================================================================
+
+  if (
+    platform.id === 'facebook' &&
+    type === 'posts' &&
+    typeof platform.navigateToPosts === 'function'
+  ) {
+    showStatus(
+      'Opening your Facebook posts...',
+      'info'
+    );
+
+    try {
+      const success =
+        await platform.navigateToPosts(tab);
+
+      if (success) {
+        await chrome.storage.local.set({
+          selectedType: type
+        });
+
+        showStatus(
+          'Facebook Manage Posts opened.',
+          'success'
+        );
+      } else {
+        showStatus(
+          'Could not find Facebook "Manage posts".',
+          'error'
+        );
+      }
+    } catch (error) {
+      console.error(
+        '[ZeroTrace] Could not open Facebook Manage Posts:',
+        error
+      );
+
+      showStatus(
+        'Could not open Facebook Manage Posts.',
+        'error'
+      );
+    }
 
     return;
   }
@@ -401,7 +398,6 @@ async function navigateToActivityPage(type) {
       'function' &&
     platform.requiresManualNavigation()
   ) {
-
     const instructions =
       platform.getManualNavigationInstructions(
         type
@@ -432,12 +428,9 @@ async function navigateToActivityPage(type) {
   let urls;
 
   try {
-
     urls =
       await platform.getUrls(tab);
-
   } catch (error) {
-
     console.error(
       '[ZeroTrace] Could not get activity URLs:',
       error
@@ -455,7 +448,6 @@ async function navigateToActivityPage(type) {
     urls[type];
 
   if (!activityUrl) {
-
     showStatus(
       `${type} page not configured for ${platform.name}`,
       'error'
@@ -494,7 +486,6 @@ async function navigateToActivityPage(type) {
 // ============================================================================
 
 async function startDeletion() {
-
   const [tab] =
     await chrome.tabs.query({
       active: true,
@@ -502,12 +493,10 @@ async function startDeletion() {
     });
 
   if (!tab || !tab.id) {
-
     showStatus(
       'Could not find active tab',
       'error'
     );
-
     return;
   }
 
@@ -515,12 +504,10 @@ async function startDeletion() {
     getCurrentPlatform();
 
   if (!platform) {
-
     showStatus(
       'Platform not found',
       'error'
     );
-
     return;
   }
 
@@ -543,23 +530,16 @@ async function startDeletion() {
   let onCorrectPage = false;
 
   if (type === 'comments') {
-
     onCorrectPage =
       detection.comments(tab.url);
-
   } else if (type === 'reactions') {
-
     onCorrectPage =
       detection.reactions(tab.url);
-
   } else if (type === 'replies') {
-
     onCorrectPage =
       detection.replies &&
       detection.replies(tab.url);
-
   } else if (type === 'reposts') {
-
     onCorrectPage =
       detection.reposts &&
       detection.reposts(tab.url);
@@ -569,19 +549,13 @@ async function startDeletion() {
     !tab.url ||
     !onCorrectPage
   ) {
-
     let pageName = 'Posts/Comments';
 
     if (type === 'reactions') {
-
       pageName = 'Likes';
-
     } else if (type === 'replies') {
-
       pageName = 'Replies';
-
     } else if (type === 'reposts') {
-
       pageName = 'Reposts';
     }
 
@@ -613,17 +587,11 @@ async function startDeletion() {
   );
 
   await chrome.storage.local.set({
-
     isDeleting: true,
-
     deleteType: type,
-
     excludeOwnPosts: excludeOwnPosts,
-
     deleteCounter: 0,
-
     deletePlatform: currentPlatform
-
   });
 
   // Switch from Start Deleting to Stop Deleting.
@@ -651,7 +619,6 @@ async function startDeletion() {
 // ============================================================================
 
 async function stopDeletion() {
-
   console.log(
     '[ZeroTrace] Stop deletion requested.'
   );
@@ -662,7 +629,6 @@ async function stopDeletion() {
 
   // Stop any currently running cleanup script in the active tab.
   try {
-
     const [tab] =
       await chrome.tabs.query({
         active: true,
@@ -670,22 +636,16 @@ async function stopDeletion() {
       });
 
     if (tab && tab.id) {
-
       await chrome.scripting.executeScript({
-
         target: {
           tabId: tab.id
         },
-
         func: () => {
           window.stopDeleting = true;
         }
-
       });
     }
-
   } catch (error) {
-
     console.log(
       '[ZeroTrace] Could not signal cleanup script to stop:',
       error
@@ -700,9 +660,7 @@ async function stopDeletion() {
     document.getElementById('progressSection');
 
   if (progressSection) {
-
     progressSection.classList.add('hidden');
-
     progressSection.style.display = 'none';
   }
 
@@ -722,7 +680,6 @@ async function executeCleanup(
   excludeOwnPosts,
   platform
 ) {
-
   console.log(
     '[ZeroTrace] executeCleanup:',
     {
@@ -733,14 +690,12 @@ async function executeCleanup(
   );
 
   try {
-
     const cleanupFunc =
       platform.getCleanupFunction();
 
     if (
       typeof cleanupFunc !== 'function'
     ) {
-
       throw new Error(
         `${platform.name} cleanup function is not available`
       );
@@ -751,13 +706,10 @@ async function executeCleanup(
     );
 
     await chrome.scripting.executeScript({
-
       target: {
         tabId: tabId
       },
-
       func: cleanupFunc,
-
       args: [
         type,
         excludeOwnPosts
@@ -767,9 +719,7 @@ async function executeCleanup(
     console.log(
       `[ZeroTrace] ${platform.name} cleanup script injected successfully.`
     );
-
   } catch (error) {
-
     console.error(
       '[ZeroTrace] Script injection error:',
       error
@@ -794,13 +744,10 @@ async function executeCleanup(
 // ============================================================================
 
 chrome.runtime.onMessage.addListener(
-
   (message, sender, sendResponse) => {
-
     if (
       message.type === 'updateCounter'
     ) {
-
       updateCounter(
         message.count
       );
@@ -811,7 +758,6 @@ chrome.runtime.onMessage.addListener(
     if (
       message.type === 'finished'
     ) {
-
       updateCounter(
         message.count
       );
@@ -838,7 +784,6 @@ chrome.runtime.onMessage.addListener(
 // ============================================================================
 
 function setupEventListeners() {
-
   // --------------------------------------------------------------------------
   // Platform buttons
   // --------------------------------------------------------------------------
@@ -846,13 +791,11 @@ function setupEventListeners() {
   if (
     typeof PlatformRegistry !== 'undefined'
   ) {
-
     const platformIds =
       PlatformRegistry.getAllIds();
 
     platformIds.forEach(
       platformId => {
-
         const capitalizedId =
           platformId.charAt(0).toUpperCase() +
           platformId.slice(1);
@@ -863,18 +806,37 @@ function setupEventListeners() {
           );
 
         if (button) {
-
           button.addEventListener(
             'click',
             () => {
-
               setPlatform(
                 platformId
               );
-
             }
           );
         }
+      }
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Facebook Posts navigation
+  // --------------------------------------------------------------------------
+
+  const postsButton =
+    document.getElementById(
+      'navigatePosts'
+    );
+
+  if (postsButton) {
+    postsButton.addEventListener(
+      'click',
+      async () => {
+        hidePageStatus();
+
+        await navigateToActivityPage(
+          'posts'
+        );
       }
     );
   }
@@ -889,17 +851,14 @@ function setupEventListeners() {
     );
 
   if (commentsButton) {
-
     commentsButton.addEventListener(
       'click',
       async () => {
-
         hidePageStatus();
 
         await navigateToActivityPage(
           'comments'
         );
-
       }
     );
   }
@@ -914,17 +873,14 @@ function setupEventListeners() {
     );
 
   if (reactionsButton) {
-
     reactionsButton.addEventListener(
       'click',
       async () => {
-
         hidePageStatus();
 
         await navigateToActivityPage(
           'reactions'
         );
-
       }
     );
   }
@@ -939,17 +895,14 @@ function setupEventListeners() {
     );
 
   if (repliesButton) {
-
     repliesButton.addEventListener(
       'click',
       async () => {
-
         hidePageStatus();
 
         await navigateToActivityPage(
           'replies'
         );
-
       }
     );
   }
@@ -964,17 +917,14 @@ function setupEventListeners() {
     );
 
   if (repostsButton) {
-
     repostsButton.addEventListener(
       'click',
       async () => {
-
         hidePageStatus();
 
         await navigateToActivityPage(
           'reposts'
         );
-
       }
     );
   }
@@ -989,7 +939,6 @@ function setupEventListeners() {
     );
 
   if (startButton) {
-
     startButton.addEventListener(
       'click',
       startDeletion
@@ -1006,7 +955,6 @@ function setupEventListeners() {
     );
 
   if (stopButton) {
-
     stopButton.addEventListener(
       'click',
       stopDeletion
@@ -1019,7 +967,6 @@ function setupEventListeners() {
 // ============================================================================
 
 async function restoreState() {
-
   const {
     deleteCounter,
     isDeleting,
@@ -1027,17 +974,11 @@ async function restoreState() {
     excludeOwnPosts,
     currentPlatform: savedPlatform
   } = await chrome.storage.local.get([
-
     'deleteCounter',
-
     'isDeleting',
-
     'deleteType',
-
     'excludeOwnPosts',
-
     'currentPlatform'
-
   ]);
 
   // --------------------------------------------------------------------------
@@ -1048,7 +989,6 @@ async function restoreState() {
     savedPlatform &&
     PlatformRegistry.has(savedPlatform)
   ) {
-
     currentPlatform =
       savedPlatform;
 
@@ -1058,11 +998,9 @@ async function restoreState() {
     document
       .querySelectorAll('.tab-btn')
       .forEach(btn => {
-
         btn.classList.remove(
           'active'
         );
-
       });
 
     const capitalizedId =
@@ -1075,7 +1013,6 @@ async function restoreState() {
       );
 
     if (button) {
-
       button.classList.add(
         'active'
       );
@@ -1095,14 +1032,12 @@ async function restoreState() {
   if (
     excludeOwnPosts !== undefined
   ) {
-
     const checkbox =
       document.getElementById(
         'excludeOwnPosts'
       );
 
     if (checkbox) {
-
       checkbox.checked =
         excludeOwnPosts;
     }
@@ -1113,7 +1048,6 @@ async function restoreState() {
   // --------------------------------------------------------------------------
 
   if (isDeleting) {
-
     await chrome.storage.local.set({
       isDeleting: false
     });
@@ -1128,21 +1062,15 @@ async function restoreState() {
 // ============================================================================
 
 async function initialize() {
-
   try {
-
     await restoreState();
-
     await checkCurrentPage();
-
     setupEventListeners();
 
     console.log(
       '[ZeroTrace] Popup initialized.'
     );
-
   } catch (error) {
-
     console.error(
       '[ZeroTrace] Popup initialization error:',
       error
