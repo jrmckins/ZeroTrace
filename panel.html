@@ -1,15 +1,22 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
+
   <title>ZeroTrace</title>
 
   <style>
+
     :root {
+
       --bg: #0b0f14;
       --panel: #111720;
       --panel-2: #151c27;
@@ -21,6 +28,7 @@
       --twitter: #ffffff;
       --danger: #ef4444;
       --success: #22c55e;
+
     }
 
     * {
@@ -29,6 +37,7 @@
 
     html,
     body {
+
       margin: 0;
       padding: 0;
       width: 100%;
@@ -43,6 +52,7 @@
         Helvetica,
         Arial,
         sans-serif;
+
     }
 
     body {
@@ -50,9 +60,11 @@
     }
 
     .app {
+
       width: 100%;
       min-height: 100vh;
       padding: 20px 20px 22px;
+
     }
 
     /* ================================================================
@@ -60,34 +72,43 @@
        ================================================================ */
 
     .header {
+
       display: flex;
       align-items: center;
       gap: 11px;
       margin-bottom: 22px;
+
     }
 
     .logo {
+
       width: 40px;
       height: 40px;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
+
       background: linear-gradient(
         135deg,
         #667eea,
         #764ba2
       );
+
       box-shadow:
         0 8px 24px rgba(102, 126, 234, 0.25);
+
       overflow: hidden;
       flex-shrink: 0;
+
     }
 
     .logo img {
+
       width: 27px;
       height: 27px;
       object-fit: contain;
+
     }
 
     .brand {
@@ -95,17 +116,21 @@
     }
 
     .brand-name {
+
       font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.3px;
       line-height: 1.15;
+
     }
 
     .brand-subtitle {
+
       margin-top: 3px;
       color: var(--muted);
       font-size: 11px;
       line-height: 1.3;
+
     }
 
     /* ================================================================
@@ -117,63 +142,54 @@
     }
 
     .section-label {
+
       margin-bottom: 8px;
       color: var(--muted);
       font-size: 10px;
       font-weight: 700;
       letter-spacing: 0.7px;
       text-transform: uppercase;
+
     }
 
     /* ================================================================
        PLATFORM SELECTOR
        ================================================================ */
 
-    .platform-selector {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      padding: 4px;
-      background: var(--panel);
+    .platform-select {
+
+      width: 100%;
+      min-height: 45px;
+      padding: 0 38px 0 13px;
+
       border: 1px solid var(--border);
-      border-radius: 11px;
-    }
+      border-radius: 10px;
 
-    .platform-button {
-      min-height: 43px;
-      border: 0;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--muted);
+      background-color: var(--panel);
+      color: var(--text);
+
       cursor: pointer;
+
       font-family: inherit;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 650;
-      transition:
-        background .15s ease,
-        color .15s ease,
-        transform .1s ease;
+
+      appearance: auto;
+
     }
 
-    .platform-button:hover {
-      color: var(--text);
-      background: var(--panel-2);
+    .platform-select:hover {
+      border-color: #3b4a5e;
     }
 
-    .platform-button:active {
-      transform: scale(.98);
-    }
+    .platform-select:focus {
 
-    .platform-button.active {
-      background: #1d2633;
-      color: var(--text);
+      outline: none;
+      border-color: #667eea;
+
       box-shadow:
-        0 2px 8px rgba(0, 0, 0, .2);
-    }
+        0 0 0 2px rgba(102, 126, 234, .15);
 
-    .platform-icon {
-      margin-right: 6px;
-      font-weight: 800;
     }
 
     /* ================================================================
@@ -189,16 +205,20 @@
     }
 
     .instruction-title {
+
       margin-bottom: 4px;
       font-size: 13px;
       font-weight: 700;
       line-height: 1.35;
+
     }
 
     .instruction-description {
+
       color: var(--muted);
       font-size: 12px;
       line-height: 1.4;
+
     }
 
     /* ================================================================
@@ -206,26 +226,33 @@
        ================================================================ */
 
     .navigation-card-title {
+
       margin-bottom: 4px;
       font-size: 13px;
       font-weight: 700;
       line-height: 1.35;
+
     }
 
     .navigation-card-description {
+
       margin-bottom: 12px;
       color: var(--muted);
       font-size: 12px;
       line-height: 1.4;
+
     }
 
     .nav-buttons {
+
       display: flex;
       flex-direction: column;
       gap: 6px;
+
     }
 
     .nav-button {
+
       width: 100%;
       min-height: 41px;
       padding: 0 12px;
@@ -238,15 +265,19 @@
       font-family: inherit;
       font-size: 12px;
       font-weight: 600;
+
       transition:
         border-color .15s ease,
         background .15s ease,
         transform .1s ease;
+
     }
 
     .nav-button:hover {
+
       border-color: #3b4a5e;
       background: #1a2330;
+
     }
 
     .nav-button:active {
@@ -254,10 +285,12 @@
     }
 
     .navigation-note {
+
       margin-top: 9px;
       color: #667384;
       font-size: 10px;
       line-height: 1.35;
+
     }
 
     /* ================================================================
@@ -265,13 +298,16 @@
        ================================================================ */
 
     .actions {
+
       display: flex;
       flex-direction: column;
       gap: 7px;
+
     }
 
     .start-button,
     .stop-button {
+
       width: 100%;
       min-height: 45px;
       border-radius: 10px;
@@ -279,23 +315,30 @@
       font-family: inherit;
       font-size: 13px;
       font-weight: 750;
+
       transition:
         transform .1s ease,
         opacity .15s ease,
         filter .15s ease;
+
     }
 
     .start-button {
+
       border: 0;
+
       background:
         linear-gradient(
           135deg,
           #667eea,
           #764ba2
         );
+
       color: white;
+
       box-shadow:
         0 10px 25px rgba(102, 126, 234, .2);
+
     }
 
     .start-button:hover {
@@ -303,85 +346,27 @@
     }
 
     .stop-button {
+
       display: block;
       background: rgba(239, 68, 68, .1);
       border: 1px solid rgba(239, 68, 68, .35);
       color: #f87171;
+
     }
 
     .start-button:active,
     .stop-button:active {
+
       transform: scale(.99);
+
     }
 
     /* ================================================================
-       PROGRESS
+       STATUS
        ================================================================ */
 
-    #progressSection {
-      display: none;
-      padding: 14px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-    }
-
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .progress-title {
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    #deleteCounter {
-      font-size: 17px;
-      font-weight: 800;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 6px;
-      overflow: hidden;
-      border-radius: 99px;
-      background: #1d2632;
-    }
-
-    .progress-fill {
-      width: 45%;
-      height: 100%;
-      border-radius: 99px;
-      background:
-        linear-gradient(
-          90deg,
-          #667eea,
-          #a855f7
-        );
-      animation:
-        progressPulse 1.3s ease-in-out infinite;
-    }
-
-    @keyframes progressPulse {
-      0% {
-        opacity: .55;
-        transform: translateX(-10%);
-      }
-
-      50% {
-        opacity: 1;
-      }
-
-      100% {
-        opacity: .55;
-        transform: translateX(120%);
-      }
-    }
-
     #statusMessage {
+
       margin-top: 10px;
       padding: 9px 10px;
       border-radius: 8px;
@@ -389,6 +374,7 @@
       color: var(--muted);
       font-size: 11px;
       line-height: 1.4;
+
     }
 
     /* ================================================================
@@ -396,6 +382,7 @@
        ================================================================ */
 
     .footer {
+
       margin-top: 22px;
       padding-top: 13px;
       border-top: 1px solid var(--border);
@@ -403,6 +390,7 @@
       text-align: center;
       font-size: 9px;
       line-height: 1.45;
+
     }
 
     /* ================================================================
@@ -412,10 +400,13 @@
     .hidden {
       display: none !important;
     }
+
   </style>
+
 </head>
 
 <body>
+
   <div class="app">
 
     <!-- ============================================================
@@ -423,14 +414,18 @@
          ============================================================ -->
 
     <div class="header">
+
       <div class="logo">
+
         <img
-          src="icon.png"
+          src="logo.png"
           alt="ZeroTrace"
         >
+
       </div>
 
       <div class="brand">
+
         <div class="brand-name">
           ZeroTrace
         </div>
@@ -438,7 +433,9 @@
         <div class="brand-subtitle">
           Clean up your social activity
         </div>
+
       </div>
+
     </div>
 
     <!-- ============================================================
@@ -446,29 +443,24 @@
          ============================================================ -->
 
     <div class="section">
+
       <div class="section-label">
         Step 1: Choose platform
       </div>
 
-      <div class="platform-selector">
-        <button
-          id="platformFacebook"
-          class="platform-button active"
-          type="button"
-        >
-          <span class="platform-icon">f</span>
+      <select
+        id="platformSelector"
+        class="platform-select"
+      >
+        <option value="facebook">
           Facebook
-        </button>
+        </option>
 
-        <button
-          id="platformTwitter"
-          class="platform-button"
-          type="button"
-        >
-          <span class="platform-icon">𝕏</span>
+        <option value="twitter">
           X / Twitter
-        </button>
-      </div>
+        </option>
+      </select>
+
     </div>
 
     <!-- ============================================================
@@ -476,6 +468,7 @@
          ============================================================ -->
 
     <div class="section instruction">
+
       <div class="section-label">
         Step 2: Log in
       </div>
@@ -484,8 +477,11 @@
         id="step2Title"
         class="instruction-title"
       >
+
         If not already logged in to Facebook, log in.
+
       </div>
+
     </div>
 
     <!-- ============================================================
@@ -493,6 +489,7 @@
          ============================================================ -->
 
     <div class="section">
+
       <div class="section-label">
         Step 3: Choose activity
       </div>
@@ -500,22 +497,29 @@
       <div
         class="navigation-card-title"
       >
+
         Open the activity section you want ZeroTrace to clean.
+
       </div>
 
       <div
         class="navigation-card-description"
       >
+
         Select an activity below to open the appropriate page.
+
       </div>
 
       <div class="nav-buttons">
+
         <button
           id="navigatePosts"
           class="nav-button"
           type="button"
         >
+
           View Posts
+
         </button>
 
         <button
@@ -523,7 +527,9 @@
           class="nav-button"
           type="button"
         >
+
           View Comments
+
         </button>
 
         <button
@@ -531,7 +537,9 @@
           class="nav-button"
           type="button"
         >
+
           View Reactions
+
         </button>
 
         <button
@@ -539,7 +547,9 @@
           class="nav-button"
           type="button"
         >
+
           Replies
+
         </button>
 
         <button
@@ -547,7 +557,9 @@
           class="nav-button"
           type="button"
         >
+
           Reposts
+
         </button>
 
       </div>
@@ -556,6 +568,7 @@
         id="navigationNote"
         class="navigation-note"
       ></div>
+
     </div>
 
     <!-- ============================================================
@@ -563,6 +576,7 @@
          ============================================================ -->
 
     <div class="section">
+
       <div class="section-label">
         Step 4: Start deleting
       </div>
@@ -574,7 +588,9 @@
           class="start-button"
           type="button"
         >
+
           Start Deleting
+
         </button>
 
         <button
@@ -582,37 +598,17 @@
           class="stop-button"
           type="button"
         >
+
           Stop Deleting
+
         </button>
 
       </div>
-    </div>
-
-    <!-- ============================================================
-         PROGRESS
-         ============================================================ -->
-
-    <div
-      id="progressSection"
-      class="section"
-    >
-      <div class="progress-header">
-        <div class="progress-title">
-          Cleanup in progress
-        </div>
-
-        <div id="deleteCounter">
-          0
-        </div>
-      </div>
-
-      <div class="progress-bar">
-        <div class="progress-fill"></div>
-      </div>
 
       <div id="statusMessage">
-        Preparing cleanup...
+        Ready.
       </div>
+
     </div>
 
     <!-- ============================================================
@@ -620,8 +616,10 @@
          ============================================================ -->
 
     <div class="footer">
+
       ZeroTrace runs locally in your browser.<br>
       Your social-media password is never required.
+
     </div>
 
   </div>
@@ -630,5 +628,7 @@
   <script src="platforms/facebook.js"></script>
   <script src="platforms/twitter.js"></script>
   <script src="popup.js"></script>
+
 </body>
+
 </html>
