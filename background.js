@@ -32,13 +32,16 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 // Also configure immediately when the service worker starts.
+
 (async () => {
   try {
     await chrome.sidePanel.setPanelBehavior({
       openPanelOnActionClick: true
     });
 
-    console.log('[ZeroTrace] Side Panel behavior initialized.');
+    console.log(
+      '[ZeroTrace] Side Panel behavior initialized.'
+    );
   } catch (error) {
     console.error(
       '[ZeroTrace] Could not initialize Side Panel behavior:',
@@ -48,7 +51,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 })();
 
 // ============================================================================
-// MESSAGES FROM POPUP / SIDE PANEL / PLATFORM SCRIPTS
+// MESSAGES FROM SIDE PANEL / PLATFORM SCRIPTS
 // ============================================================================
 
 chrome.runtime.onMessage.addListener(
@@ -94,7 +97,8 @@ chrome.tabs.onUpdated.addListener(
       'deleteType',
       'excludeOwnPosts',
       'currentPlatform',
-      'deletePlatform'
+      'deletePlatform',
+      'unlimitedDeletion'
     ]);
 
     const activePlatformId =
@@ -104,21 +108,21 @@ chrome.tabs.onUpdated.addListener(
 
     // Only resume Facebook deletion.
     //
-    // Twitter/X cleanup is handled directly by popup.js.
+    // unlimitedDeletion is true for paid users.
     if (
       !data.isDeleting ||
-      activePlatformId !== 'facebook'
+      activePlatformId !== 'facebook' ||
+      data.unlimitedDeletion !== true
     ) {
       return;
     }
 
     console.log(
-      '[ZeroTrace] Facebook page loaded/reloaded while deletion is active. ' +
+      '[ZeroTrace] Paid Facebook user page loaded/reloaded while deletion is active. ' +
       'Resuming cleanup...'
     );
 
     setTimeout(async () => {
-
       try {
 
         // ------------------------------------------------------------
@@ -142,7 +146,6 @@ chrome.tabs.onUpdated.addListener(
           target: {
             tabId: tabId
           },
-
           func: (
             type,
             excludeOwnPosts
@@ -167,10 +170,8 @@ chrome.tabs.onUpdated.addListener(
               console.error(
                 '[ZeroTrace] FacebookPlatform object not found after injection.'
               );
-
             }
           },
-
           args: [
             data.deleteType ||
               'comments',
@@ -190,9 +191,7 @@ chrome.tabs.onUpdated.addListener(
           '[ZeroTrace] Error resuming Facebook cleanup script:',
           error
         );
-
       }
-
     }, 3000);
   }
 );

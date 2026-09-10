@@ -1,0 +1,24 @@
+{
+  "name": "zerotrace",
+  "version": "1.0.0",
+  "description": "**Take control of your digital footprint.**",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrmckins/ZeroTrace.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jrmckins/ZeroTrace/issues"
+  },
+  "homepage": "https://github.com/jrmckins/ZeroTrace#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0"
+  }
+}

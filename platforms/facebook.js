@@ -12,20 +12,16 @@ window.FacebookPlatform = window.FacebookPlatform || {
   domain: 'facebook.com',
 
   async getUrls(tab) {
-
     return {
       posts: null,
-
       comments:
         'https://www.facebook.com/me/allactivity?activity_history=false&category_key=COMMENTSCLUSTER',
-
       reactions:
         'https://www.facebook.com/me/allactivity?activity_history=false&category_key=LIKEDPOSTS'
     };
   },
 
   async navigateToPosts(tab) {
-
     if (!tab || !tab.id) {
       throw new Error('Could not find active tab');
     }
@@ -34,9 +30,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
       '[ZeroTrace] Navigating to Facebook profile...'
     );
 
-    // Capture the tab's current URL BEFORE navigating so we can tell
-    // whether chrome.tabs.get is still reporting stale status from the
-    // previous page (a common race right after tabs.update fires).
     let previousUrl = tab.url || '';
 
     await chrome.tabs.update(tab.id, {
@@ -47,14 +40,8 @@ window.FacebookPlatform = window.FacebookPlatform || {
       '[ZeroTrace] Waiting for Facebook profile to load...'
     );
 
-    // Wait for the tab to finish loading. We require BOTH status ===
-    // 'complete' AND a URL that has actually changed away from the
-    // pre-navigation URL (or already points at /me), so we don't fall
-    // through on stale status from the page we just left.
     for (let i = 0; i < 30; i++) {
-
       try {
-
         const currentTab =
           await chrome.tabs.get(tab.id);
 
@@ -73,9 +60,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
         ) {
           break;
         }
-
       } catch (error) {
-
         console.warn(
           '[ZeroTrace] Could not check Facebook tab status:',
           error
@@ -87,46 +72,31 @@ window.FacebookPlatform = window.FacebookPlatform || {
       );
     }
 
-    // Give Facebook's React interface time to render.
     await new Promise(resolve =>
       setTimeout(resolve, 2000)
     );
 
-    // Look for Manage posts repeatedly because Facebook
-    // may render it after the initial page load.
     for (
       let attempt = 0;
       attempt < 30;
       attempt++
     ) {
-
       try {
-
         const results =
           await chrome.scripting.executeScript({
-
             target: {
               tabId: tab.id
             },
-
             func: () => {
 
               function cleanText(value) {
-
                 return (value || '')
                   .trim()
                   .replace(/\s+/g, ' ')
                   .toLowerCase();
               }
 
-              // A match is either:
-              //  - visible text that STARTS WITH "manage post" (tolerates
-              //    trailing hidden a11y text Facebook sometimes appends
-              //    inside the same element, e.g. "Manage postsSee all..."), or
-              //  - an aria-label containing "manage post" (Facebook often
-              //    sets this even when visible text also exists).
               function isManagePostsMatch(element) {
-
                 const text =
                   cleanText(
                     element.textContent
@@ -180,10 +150,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
                   );
                 });
 
-              // Prefer the SMALLEST matching element (most likely the
-              // innermost text/label node), since matching on
-              // startsWith/includes can pick up large ancestor
-              // containers too.
               candidates.sort((a, b) => {
 
                 const areaA =
@@ -201,7 +167,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
                 candidates[0];
 
               if (!textElement) {
-
                 return {
                   found: false,
                   clicked: false
@@ -212,9 +177,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
                 '[ZeroTrace] Found visible Facebook "Manage posts" text.'
               );
 
-              // The span containing "Manage posts" may not itself
-              // be the clickable element. Walk upward until we find
-              // the Facebook control that owns the text.
               let clickable =
                 textElement;
 
@@ -258,7 +220,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
               }
 
               if (!clickable) {
-
                 return {
                   found: true,
                   clicked: false
@@ -275,8 +236,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
                 block: 'center'
               });
 
-              // Trigger the same basic pointer/mouse sequence
-              // a real user interaction would generate.
               try {
 
                 clickable.dispatchEvent(
@@ -378,7 +337,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
           result.found &&
           result.clicked
         ) {
-
           console.log(
             '[ZeroTrace] Successfully clicked Facebook "Manage posts".'
           );
@@ -411,7 +369,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
   },
 
   getPageDetection() {
-
     return {
 
       posts: (url) =>
@@ -454,14 +411,24 @@ window.FacebookPlatform = window.FacebookPlatform || {
 
       const initialStorage =
         await chrome.storage.local.get([
-          'deleteCounter'
+          'deleteCounter',
+          'unlimitedDeletion'
         ]);
 
       let deletedCount =
         initialStorage.deleteCounter || 0;
 
-      let noChangeCount = 0;
+      const unlimitedDeletion =
+        initialStorage.unlimitedDeletion === true;
 
+      console.log(
+        '[ZeroTrace] Facebook deletion mode:',
+        unlimitedDeletion
+          ? 'PAID / UNLIMITED'
+          : 'FREE / ONE BATCH'
+      );
+
+      let noChangeCount = 0;
       const maxNoChangeAttempts = 20;
 
       window.stopDeleting = false;
@@ -475,24 +442,20 @@ window.FacebookPlatform = window.FacebookPlatform || {
         count,
         finished = false
       ) {
-
         try {
-
           chrome.runtime.sendMessage({
-
             type: finished
               ? 'finished'
               : 'updateCounter',
-
             count: count
           });
-
         } catch (e) {}
       }
 
       function isVisible(element) {
-
-        if (!element) return false;
+        if (!element) {
+          return false;
+        }
 
         const rect =
           element.getBoundingClientRect();
@@ -511,16 +474,15 @@ window.FacebookPlatform = window.FacebookPlatform || {
       }
 
       function clickElement(element) {
-
-        if (!element) return false;
+        if (!element) {
+          return false;
+        }
 
         try {
-
           element.scrollIntoView({
             behavior: 'instant',
             block: 'center'
           });
-
         } catch (e) {}
 
         try {
@@ -554,13 +516,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
         } catch (e) {
 
           try {
-
             element.click();
-
             return true;
-
           } catch (e2) {
-
             return false;
           }
         }
@@ -577,7 +535,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
           checkbox &&
           isVisible(checkbox)
         ) {
-
           return checkbox;
         }
 
@@ -619,7 +576,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             ) ||
             parentText === 'all'
           ) {
-
             return candidate;
           }
         }
@@ -674,7 +630,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             checkbox &&
             checkbox.checked
           ) {
-
             return true;
           }
 
@@ -750,19 +705,14 @@ window.FacebookPlatform = window.FacebookPlatform || {
                 .toLowerCase();
 
             return elementText === text;
+
           }) || null
         );
       }
 
       function findAndClickManagePosts() {
 
-        // Same matching logic as navigateToPosts(): the "Manage posts"
-        // control needs to be re-clicked after every page reload, since
-        // reloading closes the "Select the posts you want to manage"
-        // modal and drops us back on the plain Posts tab.
-
         function cleanText(value) {
-
           return (value || '')
             .trim()
             .replace(/\s+/g, ' ')
@@ -902,6 +852,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
               elementText === 'select all' ||
               elementText === 'unselect all'
             );
+
           }) || null
         );
       }
@@ -980,11 +931,34 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
           if (match) {
-            return parseInt(match[1], 10);
+            return parseInt(
+              match[1],
+              10
+            );
           }
         }
 
         return 0;
+      }
+
+      async function finishDeletion(message) {
+
+        await chrome.storage.local.set({
+          isDeleting: false
+        });
+
+        updatePopup(
+          deletedCount,
+          true
+        );
+
+        console.log(
+          `[ZeroTrace] ${message}`
+        );
+
+        alert(
+          `Completed! Deleted ${deletedCount} ${type}.`
+        );
       }
 
       async function bulkDeleteComments() {
@@ -1013,24 +987,14 @@ window.FacebookPlatform = window.FacebookPlatform || {
               maxNoChangeAttempts
             ) {
 
-              updatePopup(
-                deletedCount,
-                true
-              );
-
-              await chrome.storage.local.set({
-                isDeleting: false
-              });
-
-              alert(
-                `Completed! Deleted ${deletedCount} comments.`
+              await finishDeletion(
+                'No more Facebook comments found.'
               );
 
               return;
             }
 
             await wait(1500);
-
             continue;
           }
 
@@ -1043,13 +1007,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             if (
-              !clickElement(
-                checkbox
-              )
+              !clickElement(checkbox)
             ) {
-
               await wait(1000);
-
               continue;
             }
 
@@ -1065,7 +1025,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
               );
 
               await wait(1000);
-
               continue;
             }
           }
@@ -1080,9 +1039,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           if (
             removeButtons.length === 0
           ) {
-
             await wait(1500);
-
             continue;
           }
 
@@ -1095,9 +1052,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
               removeButtons[0]
             )
           ) {
-
             await wait(1000);
-
             continue;
           }
 
@@ -1115,7 +1070,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
-
             continue;
           }
 
@@ -1133,9 +1087,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
               confirmButton
             )
           ) {
-
             await wait(1000);
-
             continue;
           }
 
@@ -1152,12 +1104,20 @@ window.FacebookPlatform = window.FacebookPlatform || {
               deletedCount
           });
 
+          if (!unlimitedDeletion) {
+
+            await finishDeletion(
+              'Completed one free Facebook comment deletion batch. Stopping.'
+            );
+
+            return;
+          }
+
           console.log(
-            `ZeroTrace: Completed bulk comment removal operation #${deletedCount}. Reloading page...`
+            `ZeroTrace: Paid user - completed bulk comment removal operation #${deletedCount}. Reloading...`
           );
 
           window.location.reload();
-
           return;
         }
 
@@ -1192,24 +1152,14 @@ window.FacebookPlatform = window.FacebookPlatform || {
               maxNoChangeAttempts
             ) {
 
-              updatePopup(
-                deletedCount,
-                true
-              );
-
-              await chrome.storage.local.set({
-                isDeleting: false
-              });
-
-              alert(
-                `Completed! Deleted ${deletedCount} reactions.`
+              await finishDeletion(
+                'No more Facebook reactions found.'
               );
 
               return;
             }
 
             await wait(1500);
-
             continue;
           }
 
@@ -1232,7 +1182,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
               );
 
               await wait(1000);
-
               continue;
             }
 
@@ -1249,7 +1198,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
               );
 
               await wait(1000);
-
               continue;
             }
 
@@ -1276,7 +1224,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1500);
-
             continue;
           }
 
@@ -1295,7 +1242,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
-
             continue;
           }
 
@@ -1313,7 +1259,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
-
             continue;
           }
 
@@ -1337,7 +1282,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
-
             continue;
           }
 
@@ -1354,16 +1298,20 @@ window.FacebookPlatform = window.FacebookPlatform || {
               deletedCount
           });
 
-          console.log(
-            `ZeroTrace: Completed bulk reaction removal operation #${deletedCount}`
-          );
+          if (!unlimitedDeletion) {
+
+            await finishDeletion(
+              'Completed one free Facebook reaction deletion batch. Stopping.'
+            );
+
+            return;
+          }
 
           console.log(
-            'ZeroTrace: Reloading Facebook reactions page...'
+            `ZeroTrace: Paid user - completed bulk reaction removal operation #${deletedCount}. Reloading...`
           );
 
           window.location.reload();
-
           return;
         }
 
@@ -1387,10 +1335,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
 
           if (!selectAllToggle) {
 
-            // The modal closes on every page reload, so this is the
-            // expected state at the start of each new batch. Try to
-            // reopen it via "Manage posts" before assuming there's
-            // nothing left to delete.
             const reopened =
               findAndClickManagePosts();
 
@@ -1420,24 +1364,14 @@ window.FacebookPlatform = window.FacebookPlatform || {
               maxNoChangeAttempts
             ) {
 
-              updatePopup(
-                deletedCount,
-                true
-              );
-
-              await chrome.storage.local.set({
-                isDeleting: false
-              });
-
-              alert(
-                `Completed! Deleted ${deletedCount} posts.`
+              await finishDeletion(
+                'No more Facebook posts found.'
               );
 
               return;
             }
 
             await wait(1500);
-
             continue;
           }
 
@@ -1448,7 +1382,9 @@ window.FacebookPlatform = window.FacebookPlatform || {
               .trim()
               .toLowerCase();
 
-          if (toggleText === 'select all') {
+          if (
+            toggleText === 'select all'
+          ) {
 
             console.log(
               'ZeroTrace: Clicking Select all'
@@ -1459,9 +1395,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
                 selectAllToggle
               )
             ) {
-
               await wait(1000);
-
               continue;
             }
 
@@ -1475,23 +1409,16 @@ window.FacebookPlatform = window.FacebookPlatform || {
             `ZeroTrace: ${selectedCount} post(s) selected`
           );
 
-          if (selectedCount === 0) {
+          if (
+            selectedCount === 0
+          ) {
 
             console.log(
               'ZeroTrace: No posts selected, nothing left to delete'
             );
 
-            updatePopup(
-              deletedCount,
-              true
-            );
-
-            await chrome.storage.local.set({
-              isDeleting: false
-            });
-
-            alert(
-              `Completed! Deleted ${deletedCount} posts.`
+            await finishDeletion(
+              'No more Facebook posts found.'
             );
 
             return;
@@ -1510,7 +1437,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
-
             continue;
           }
 
@@ -1521,9 +1447,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           if (
             !clickElement(nextButton)
           ) {
-
             await wait(1000);
-
             continue;
           }
 
@@ -1533,7 +1457,8 @@ window.FacebookPlatform = window.FacebookPlatform || {
 
           for (
             let attempt = 0;
-            attempt < 15 && !deleteRadio;
+            attempt < 15 &&
+            !deleteRadio;
             attempt++
           ) {
 
@@ -1552,7 +1477,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
-
             continue;
           }
 
@@ -1563,9 +1487,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           if (
             !clickElement(deleteRadio)
           ) {
-
             await wait(1000);
-
             continue;
           }
 
@@ -1588,7 +1510,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             ) {
 
               doneButton = candidate;
-
               break;
             }
 
@@ -1602,7 +1523,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
             await wait(1000);
-
             continue;
           }
 
@@ -1613,9 +1533,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           if (
             !clickElement(doneButton)
           ) {
-
             await wait(1000);
-
             continue;
           }
 
@@ -1632,12 +1550,20 @@ window.FacebookPlatform = window.FacebookPlatform || {
               deletedCount
           });
 
+          if (!unlimitedDeletion) {
+
+            await finishDeletion(
+              `Deleted one free Facebook post batch of ${selectedCount} post(s). Stopping.`
+            );
+
+            return;
+          }
+
           console.log(
-            `ZeroTrace: Deleted a batch of ${selectedCount} post(s). Total: ${deletedCount}. Reloading page...`
+            `ZeroTrace: Paid user - deleted a batch of ${selectedCount} post(s). Total: ${deletedCount}. Reloading...`
           );
 
           window.location.reload();
-
           return;
         }
 
