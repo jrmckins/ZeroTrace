@@ -44,100 +44,20 @@ export async function verifyAndTrackUsage(optionKey) {
       optionKey
     });
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('is_paid, usage')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // All read/write logic now lives server-side in the
+    // check_and_track_usage() Postgres function. The anon key
+    // has no direct grants on the `users` table anymore, so
+    // there is no client-reachable path to setting is_paid.
+    const { data, error } = await supabase.rpc(
+      'check_and_track_usage',
+      {
+        p_user_id: userId,
+        p_option_key: optionKey
+      }
+    );
 
     if (error) {
-      console.error('[ZeroTrace] Supabase lookup failed:', error);
-
-      return {
-        allowed: false,
-        reason: 'db_error'
-      };
-    }
-
-    // First time this extension user has been seen.
-    if (!data) {
-      const { error: insertError } = await supabase
-        .from('users')
-        .insert({
-          user_id: userId,
-          is_paid: false,
-          usage: {
-            [optionKey]: 1
-          }
-        });
-
-      if (insertError) {
-        console.error(
-          '[ZeroTrace] Could not create user:',
-          insertError
-        );
-
-        return {
-          allowed: false,
-          reason: 'db_error'
-        };
-      }
-
-      console.log(
-        '[ZeroTrace] New free user created. Free usage consumed:',
-        optionKey
-      );
-
-      return {
-        allowed: true,
-        paid: false
-      };
-    }
-
-    // Paid users have unlimited usage.
-    if (data.is_paid === true) {
-      console.log('[ZeroTrace] Paid user - unlimited usage.');
-
-      return {
-        allowed: true,
-        paid: true
-      };
-    }
-
-    const usage = data.usage || {};
-    const currentUsage = Number(usage[optionKey] || 0);
-
-    // Free users get one run of each activity type.
-    if (currentUsage >= 1) {
-      console.log(
-        '[ZeroTrace] Free usage already consumed:',
-        optionKey
-      );
-
-      return {
-        allowed: false,
-        paid: false,
-        reason: 'paywall_required'
-      };
-    }
-
-    const updatedUsage = {
-      ...usage,
-      [optionKey]: 1
-    };
-
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({
-        usage: updatedUsage
-      })
-      .eq('user_id', userId);
-
-    if (updateError) {
-      console.error(
-        '[ZeroTrace] Could not update usage:',
-        updateError
-      );
+      console.error('[ZeroTrace] Usage check failed:', error);
 
       return {
         allowed: false,
@@ -146,14 +66,11 @@ export async function verifyAndTrackUsage(optionKey) {
     }
 
     console.log(
-      '[ZeroTrace] Free usage consumed:',
-      optionKey
+      '[ZeroTrace] Usage verification result:',
+      data
     );
 
-    return {
-      allowed: true,
-      paid: false
-    };
+    return data;
   } catch (error) {
     console.error(
       '[ZeroTrace] Usage checker error:',

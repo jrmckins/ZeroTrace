@@ -20793,86 +20793,25 @@ async function verifyAndTrackUsage(optionKey) {
       userId,
       optionKey
     });
-    const { data, error } = await supabase.from("users").select("is_paid, usage").eq("user_id", userId).maybeSingle();
-    if (error) {
-      console.error("[ZeroTrace] Supabase lookup failed:", error);
-      return {
-        allowed: false,
-        reason: "db_error"
-      };
-    }
-    if (!data) {
-      const { error: insertError } = await supabase.from("users").insert({
-        user_id: userId,
-        is_paid: false,
-        usage: {
-          [optionKey]: 1
-        }
-      });
-      if (insertError) {
-        console.error(
-          "[ZeroTrace] Could not create user:",
-          insertError
-        );
-        return {
-          allowed: false,
-          reason: "db_error"
-        };
+    const { data, error } = await supabase.rpc(
+      "check_and_track_usage",
+      {
+        p_user_id: userId,
+        p_option_key: optionKey
       }
-      console.log(
-        "[ZeroTrace] New free user created. Free usage consumed:",
-        optionKey
-      );
-      return {
-        allowed: true,
-        paid: false
-      };
-    }
-    if (data.is_paid === true) {
-      console.log("[ZeroTrace] Paid user - unlimited usage.");
-      return {
-        allowed: true,
-        paid: true
-      };
-    }
-    const usage = data.usage || {};
-    const currentUsage = Number(usage[optionKey] || 0);
-    if (currentUsage >= 1) {
-      console.log(
-        "[ZeroTrace] Free usage already consumed:",
-        optionKey
-      );
-      return {
-        allowed: false,
-        paid: false,
-        reason: "paywall_required"
-      };
-    }
-    const updatedUsage = {
-      ...usage,
-      [optionKey]: 1
-    };
-    const { error: updateError } = await supabase.from("users").update({
-      usage: updatedUsage
-    }).eq("user_id", userId);
-    if (updateError) {
-      console.error(
-        "[ZeroTrace] Could not update usage:",
-        updateError
-      );
+    );
+    if (error) {
+      console.error("[ZeroTrace] Usage check failed:", error);
       return {
         allowed: false,
         reason: "db_error"
       };
     }
     console.log(
-      "[ZeroTrace] Free usage consumed:",
-      optionKey
+      "[ZeroTrace] Usage verification result:",
+      data
     );
-    return {
-      allowed: true,
-      paid: false
-    };
+    return data;
   } catch (error) {
     console.error(
       "[ZeroTrace] Usage checker error:",

@@ -4,7 +4,8 @@
   "description": "**Take control of your digital footprint.**",
   "main": "background.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild usageChecker.js --bundle --format=esm --outfile=usageChecker.bundle.js"
   },
   "repository": {
     "type": "git",
@@ -20,5 +21,8 @@
   "homepage": "https://github.com/jrmckins/ZeroTrace#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
