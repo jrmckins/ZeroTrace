@@ -306,6 +306,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
                 console.log(
                   '[ZeroTrace] Pointer events unavailable, using click().'
                 );
+
               }
 
               clickable.click();
@@ -340,7 +341,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
           console.log(
             '[ZeroTrace] Successfully clicked Facebook "Manage posts".'
           );
-
           return true;
         }
 
@@ -350,6 +350,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           '[ZeroTrace] Error looking for Facebook "Manage posts":',
           error
         );
+
       }
 
       console.log(
@@ -442,17 +443,22 @@ window.FacebookPlatform = window.FacebookPlatform || {
         count,
         finished = false
       ) {
+
         try {
+
           chrome.runtime.sendMessage({
             type: finished
               ? 'finished'
               : 'updateCounter',
             count: count
           });
+
         } catch (e) {}
+
       }
 
       function isVisible(element) {
+
         if (!element) {
           return false;
         }
@@ -474,15 +480,18 @@ window.FacebookPlatform = window.FacebookPlatform || {
       }
 
       function clickElement(element) {
+
         if (!element) {
           return false;
         }
 
         try {
+
           element.scrollIntoView({
             behavior: 'instant',
             block: 'center'
           });
+
         } catch (e) {}
 
         try {
@@ -516,12 +525,528 @@ window.FacebookPlatform = window.FacebookPlatform || {
         } catch (e) {
 
           try {
+
             element.click();
+
             return true;
+
           } catch (e2) {
+
             return false;
+
           }
         }
+      }
+
+      /*
+       * Find a clickable Facebook control by visible text.
+       * Used only for the Posts filter flow.
+       */
+      function findPostsFilterControl(text) {
+
+        const target =
+          text
+            .trim()
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+
+        const elements =
+          Array.from(
+            document.querySelectorAll(
+              'span, div, button, a, [role="button"], [role="menuitem"], [role="radio"], [tabindex="0"]'
+            )
+          );
+
+        const matches =
+          elements.filter(element => {
+
+            if (!isVisible(element)) {
+              return false;
+            }
+
+            const elementText =
+              (element.textContent || '')
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            const ariaLabel =
+              (
+                element.getAttribute('aria-label') ||
+                ''
+              )
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            return (
+              elementText === target ||
+              ariaLabel === target
+            );
+          });
+
+        matches.sort((a, b) => {
+
+          const areaA =
+            a.getBoundingClientRect().width *
+            a.getBoundingClientRect().height;
+
+          const areaB =
+            b.getBoundingClientRect().width *
+            b.getBoundingClientRect().height;
+
+          return areaA - areaB;
+        });
+
+        const textElement =
+          matches[0];
+
+        if (!textElement) {
+          return null;
+        }
+
+        let clickable =
+          textElement;
+
+        for (
+          let level = 0;
+          level < 10;
+          level++
+        ) {
+
+          if (!clickable) {
+            break;
+          }
+
+          const tag =
+            clickable.tagName
+              ? clickable.tagName.toLowerCase()
+              : '';
+
+          const role =
+            clickable.getAttribute
+              ? clickable.getAttribute('role')
+              : '';
+
+          const tabIndex =
+            clickable.getAttribute
+              ? clickable.getAttribute('tabindex')
+              : null;
+
+          if (
+            tag === 'button' ||
+            tag === 'a' ||
+            role === 'button' ||
+            role === 'menuitem' ||
+            role === 'radio' ||
+            role === 'option' ||
+            role === 'menuitemradio' ||
+            role === 'menuitemcheckbox' ||
+            tabIndex === '0'
+          ) {
+            break;
+          }
+
+          clickable =
+            clickable.parentElement;
+        }
+
+        return clickable || null;
+      }
+
+      /*
+       * Facebook Posts filter flow:
+       * Filters -> Posted by: Anyone -> You -> Done
+       */
+      function findFiltersButton() {
+
+        const candidates =
+          Array.from(
+            document.querySelectorAll(
+              '[role="button"], button, a, div[tabindex]'
+            )
+          );
+
+        return (
+          candidates.find(element => {
+
+            if (!isVisible(element)) {
+              return false;
+            }
+
+            const elementText =
+              (element.textContent || '')
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            const ariaLabel =
+              (
+                element.getAttribute('aria-label') ||
+                ''
+              )
+                .trim()
+                .replace(/\s+/g, ' ')
+                .toLowerCase();
+
+            return (
+              elementText === 'filters' ||
+              ariaLabel === 'filters'
+            );
+
+          }) || null
+        );
+      }
+
+      async function openPostsFilters() {
+
+        console.log(
+          '[ZeroTrace] Looking for Facebook "Filters" button.'
+        );
+
+        let filtersButton = null;
+
+        for (
+          let attempt = 0;
+          attempt < 20 && !filtersButton;
+          attempt++
+        ) {
+
+          filtersButton =
+            findFiltersButton();
+
+          if (!filtersButton) {
+            await wait(500);
+          }
+        }
+
+        if (!filtersButton) {
+
+          console.log(
+            '[ZeroTrace] Could not find Facebook "Filters" button.'
+          );
+
+          return false;
+        }
+
+        console.log(
+          '[ZeroTrace] Clicking Facebook "Filters".'
+        );
+
+        if (
+          !clickElement(filtersButton)
+        ) {
+          return false;
+        }
+
+        await wait(1000);
+
+        return true;
+      }
+
+      async function filterPostsToYou() {
+
+        console.log(
+          '[ZeroTrace] Starting Facebook post filter: Filters -> Posted by: Anyone -> You -> Done'
+        );
+
+        const filtersOpened =
+          await openPostsFilters();
+
+        if (!filtersOpened) {
+
+          console.log(
+            '[ZeroTrace] Could not open Facebook post Filters panel.'
+          );
+
+          return false;
+        }
+
+        /*
+         * Target the "Posted by" combobox directly, using the
+         * aria-label pattern Facebook applies to it:
+         * "Select option for posted by filter. Currently set to ANYONE"
+         */
+        function findPostedByCombobox() {
+
+          const comboboxes =
+            Array.from(
+              document.querySelectorAll(
+                '[role="combobox"][aria-haspopup="listbox"]'
+              )
+            );
+
+          return (
+            comboboxes.find(element => {
+
+              if (!isVisible(element)) {
+                return false;
+              }
+
+              const ariaLabel =
+                (
+                  element.getAttribute('aria-label') ||
+                  ''
+                ).toLowerCase();
+
+              return ariaLabel.includes(
+                'posted by filter'
+              );
+
+            }) || null
+          );
+        }
+
+        /*
+         * Wait for the Post filters dialog and the
+         * "Posted by" combobox to appear.
+         */
+        let postedByCombobox = null;
+
+        for (
+          let attempt = 0;
+          attempt < 20 && !postedByCombobox;
+          attempt++
+        ) {
+
+          postedByCombobox =
+            findPostedByCombobox();
+
+          if (!postedByCombobox) {
+            await wait(500);
+          }
+        }
+
+        if (!postedByCombobox) {
+
+          console.log(
+            '[ZeroTrace] Could not find Facebook "Posted by" combobox.'
+          );
+
+          return false;
+        }
+
+        console.log(
+          '[ZeroTrace] Clicking Facebook "Posted by" combobox to open it.'
+        );
+
+        if (
+          !clickElement(postedByCombobox)
+        ) {
+          return false;
+        }
+
+        await wait(1000);
+
+        // Confirm the dropdown actually opened.
+        let expanded = false;
+
+        for (
+          let attempt = 0;
+          attempt < 10 && !expanded;
+          attempt++
+        ) {
+
+          const recheck =
+            findPostedByCombobox();
+
+          if (
+            recheck &&
+            recheck.getAttribute('aria-expanded') === 'true'
+          ) {
+            expanded = true;
+            break;
+          }
+
+          await wait(300);
+        }
+
+        if (!expanded) {
+
+          console.log(
+            '[ZeroTrace] "Posted by" dropdown did not expand after clicking.'
+          );
+
+          return false;
+        }
+
+        console.log(
+          '[ZeroTrace] "Posted by" dropdown is open.'
+        );
+
+        let youButton = null;
+
+        for (
+          let attempt = 0;
+          attempt < 20 && !youButton;
+          attempt++
+        ) {
+
+          youButton =
+            findPostsFilterControl('you');
+
+          if (!youButton) {
+            await wait(500);
+          }
+        }
+
+        if (!youButton) {
+
+          console.log(
+            '[ZeroTrace] Could not find Facebook "You" filter option.'
+          );
+
+          return false;
+        }
+
+        console.log(
+          '[ZeroTrace] Clicking Facebook "You".'
+        );
+
+        if (
+          !clickElement(youButton)
+        ) {
+          return false;
+        }
+
+        await wait(1000);
+
+        /*
+         * Verify "You" actually became selected by re-checking
+         * the combobox's own aria-label, which Facebook updates
+         * to reflect the current selection (e.g. "...Currently
+         * set to YOU"). This is more reliable than checking
+         * aria-checked/aria-selected on the option element,
+         * which disappears once the dropdown closes.
+         */
+        let youConfirmed = false;
+
+        for (
+          let attempt = 0;
+          attempt < 10 && !youConfirmed;
+          attempt++
+        ) {
+
+          const recheck =
+            findPostedByCombobox();
+
+          const ariaLabel =
+            recheck &&
+            recheck.getAttribute
+              ? (
+                  recheck.getAttribute('aria-label') ||
+                  ''
+                ).toLowerCase()
+              : '';
+
+          if (
+            ariaLabel.includes('set to you') &&
+            !ariaLabel.includes('anyone')
+          ) {
+            youConfirmed = true;
+            break;
+          }
+
+          await wait(300);
+        }
+
+        if (!youConfirmed) {
+
+          console.log(
+            '[ZeroTrace] Could not confirm "You" was selected (combobox aria-label did not update). Proceeding cautiously.'
+          );
+        } else {
+
+          console.log(
+            '[ZeroTrace] Confirmed Facebook "Posted by" filter is now set to You.'
+          );
+        }
+
+        let doneButton = null;
+
+        for (
+          let attempt = 0;
+          attempt < 20 && !doneButton;
+          attempt++
+        ) {
+
+          doneButton =
+            findPostsFilterControl('done');
+
+          if (
+            doneButton &&
+            isElementDisabled(doneButton)
+          ) {
+            doneButton = null;
+          }
+
+          if (!doneButton) {
+            await wait(500);
+          }
+        }
+
+        if (!doneButton) {
+
+          console.log(
+            '[ZeroTrace] Could not find Facebook filter "Done" button.'
+          );
+
+          return false;
+        }
+
+        console.log(
+          '[ZeroTrace] Clicking Facebook filter "Done".'
+        );
+
+        if (
+          !clickElement(doneButton)
+        ) {
+          return false;
+        }
+
+        await wait(1500);
+
+        console.log(
+          '[ZeroTrace] Facebook post filter applied: Posted by -> You.'
+        );
+
+        console.log(
+          '[ZeroTrace] Waiting for filtered posts grid to settle...'
+        );
+
+        const settledTotal =
+          await waitForStablePostsTotal();
+
+        console.log(
+          `[ZeroTrace] Filtered posts grid settled at ${settledTotal}.`
+        );
+
+        return true;
+      }
+
+      function getManagePostsDialog() {
+
+        /*
+         * Scope element lookups to the "Manage posts" dialog
+         * instead of the whole document. Facebook's page is
+         * full of other "X/Y" style counters (photo carousels,
+         * story indicators, etc.) that can be misread as the
+         * selection counter if we search globally.
+         */
+
+        const dialogs =
+          Array.from(
+            document.querySelectorAll(
+              '[role="dialog"]'
+            )
+          );
+
+        const visibleDialog =
+          dialogs.find(dialog =>
+            isVisible(dialog)
+          );
+
+        return visibleDialog || document;
       }
 
       function findSelectAllCheckbox() {
@@ -907,14 +1432,26 @@ window.FacebookPlatform = window.FacebookPlatform || {
         return null;
       }
 
+      /*
+       * Reads the current "X/Y" selection counter from within the
+       * Manage Posts dialog only (see getManagePostsDialog()), to
+       * avoid matching unrelated "X/Y" counters elsewhere on the
+       * page (photo carousels, story indicators, etc.), and to
+       * avoid stale nodes lingering outside the active dialog.
+       */
       function parseSelectedPostsCount() {
+
+        const root =
+          getManagePostsDialog();
 
         const candidates =
           Array.from(
-            document.querySelectorAll(
+            root.querySelectorAll(
               'span, div'
             )
           );
+
+        const matches = [];
 
         for (const element of candidates) {
 
@@ -931,14 +1468,132 @@ window.FacebookPlatform = window.FacebookPlatform || {
             );
 
           if (match) {
-            return parseInt(
-              match[1],
-              10
-            );
+            matches.push({
+              selected: parseInt(match[1], 10),
+              total: parseInt(match[2], 10),
+              element
+            });
           }
         }
 
-        return 0;
+        if (matches.length > 1) {
+
+          console.log(
+            '[ZeroTrace][DEBUG] Multiple "X/Y" counters found while parsing selected posts:',
+            matches
+          );
+        }
+
+        return matches.length
+          ? matches[0].selected
+          : 0;
+      }
+
+      /*
+       * Reads the total post count (the "Y" in Facebook's
+       * "X/Y" selection counter), scoped to the Manage Posts
+       * dialog. Returns null if the counter isn't present
+       * (e.g. dialog hasn't rendered it yet).
+       */
+      function parseTotalPostsCount() {
+
+        const root =
+          getManagePostsDialog();
+
+        const candidates =
+          Array.from(
+            root.querySelectorAll(
+              'span, div'
+            )
+          );
+
+        const matches = [];
+
+        for (const element of candidates) {
+
+          if (!isVisible(element)) {
+            continue;
+          }
+
+          const elementText =
+            (element.textContent || '').trim();
+
+          const match =
+            elementText.match(
+              /^(\d+)\/(\d+)$/
+            );
+
+          if (match) {
+            matches.push({
+              selected: parseInt(match[1], 10),
+              total: parseInt(match[2], 10),
+              element
+            });
+          }
+        }
+
+        if (matches.length > 1) {
+
+          console.log(
+            '[ZeroTrace][DEBUG] Multiple "X/Y" counters found while parsing total posts:',
+            matches
+          );
+        }
+
+        return matches.length
+          ? matches[0].total
+          : null;
+      }
+
+      /*
+       * After the "Posted by -> You" filter closes, Facebook
+       * refetches the post grid asynchronously (Comet*RefetchQuery).
+       * The "X/Y" total can briefly still reflect the old,
+       * unfiltered set. Poll until the total stops changing
+       * across consecutive reads before acting on the grid,
+       * so "Select all" doesn't grab stale posts.
+       */
+      async function waitForStablePostsTotal() {
+
+        let lastTotal = null;
+        let stableReads = 0;
+
+        for (
+          let attempt = 0;
+          attempt < 20;
+          attempt++
+        ) {
+
+          const total =
+            parseTotalPostsCount();
+
+          if (
+            total !== null &&
+            total === lastTotal
+          ) {
+
+            stableReads++;
+
+            if (stableReads >= 3) {
+              return total;
+            }
+
+          } else {
+
+            stableReads =
+              total !== null ? 1 : 0;
+          }
+
+          lastTotal = total;
+
+          await wait(400);
+        }
+
+        console.log(
+          '[ZeroTrace] Facebook posts total did not stabilize in time; proceeding with last known value.'
+        );
+
+        return lastTotal;
       }
 
       async function finishDeletion(message) {
@@ -1118,6 +1773,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           );
 
           window.location.reload();
+
           return;
         }
 
@@ -1312,6 +1968,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           );
 
           window.location.reload();
+
           return;
         }
 
@@ -1325,6 +1982,26 @@ window.FacebookPlatform = window.FacebookPlatform || {
         console.log(
           'ZeroTrace: Starting Facebook bulk post deletion'
         );
+
+        /*
+         * Apply Facebook's "Posted by -> You" filter.
+         * The Post filters dialog is already opened by Start Deleting.
+         */
+        const filterApplied =
+          await filterPostsToYou();
+
+        if (!filterApplied) {
+
+          console.log(
+            'ZeroTrace: Facebook post filter could not be applied. Stopping deletion.'
+          );
+
+          await finishDeletion(
+            'Could not apply Facebook "Posted by -> You" filter.'
+          );
+
+          return;
+        }
 
         while (
           !window.stopDeleting
@@ -1508,7 +2185,6 @@ window.FacebookPlatform = window.FacebookPlatform || {
               candidate &&
               !isElementDisabled(candidate)
             ) {
-
               doneButton = candidate;
               break;
             }
@@ -1564,6 +2240,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
           );
 
           window.location.reload();
+
           return;
         }
 
@@ -1643,6 +2320,7 @@ window.FacebookPlatform = window.FacebookPlatform || {
 if (
   typeof PlatformRegistry !== 'undefined'
 ) {
+
   PlatformRegistry.register(
     window.FacebookPlatform
   );
