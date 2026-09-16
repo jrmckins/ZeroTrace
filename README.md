@@ -1,4 +1,5 @@
 ZeroTrace
+
 Take control of your digital footprint.  
 ZeroTrace is an open‑source Chrome extension that helps you find, review, and remove your own activity across major social‑media platforms. Whether you're cleaning up years of posts, comments, likes, replies, or other interactions, ZeroTrace gives you one place to manage your digital history.
 
