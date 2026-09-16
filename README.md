@@ -75,7 +75,7 @@ Bluesky	🔜 Planned
 Additional platforms will be added over time.
 
 👤 Maintainer
-ZeroTrace is actively maintained by Jim McKins, who develops new features, maintains platform compatibility, and manages ongoing updates as Facebook, Twitter, and other platforms evolve.
+ZeroTrace is actively maintained by Jim McKinstry, who develops new features, maintains platform compatibility, and manages ongoing updates as Facebook, Twitter, and other platforms evolve.
 All development, architecture, and platform‑specific logic is maintained openly and transparently.
 
 🌐 Open‑Source Impact
