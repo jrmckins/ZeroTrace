@@ -1,104 +1,155 @@
-# ZeroTrace
+ZeroTrace
+Take control of your digital footprint.  
+ZeroTrace is an open‑source Chrome extension that helps you find, review, and remove your own activity across major social‑media platforms. Whether you're cleaning up years of posts, comments, likes, replies, or other interactions, ZeroTrace gives you one place to manage your digital history.
 
-**Take control of your digital footprint.**
+🚀 Features
+Facebook
+Review your Facebook activity
 
-ZeroTrace is a Chrome extension designed to help you find, review, and remove your own activity across social-media platforms.
+Find posts and comments you've created
 
-Whether you're cleaning up years of old posts, comments, likes, replies, or other activity, ZeroTrace gives you one place to manage your digital footprint.
+Remove unwanted activity
 
-## 🚀 Features
+Navigate directly to relevant Facebook pages
 
-### Facebook
+X / Twitter
+Review your posts and replies
 
-* Review your Facebook activity
-* Find posts and comments you've created
-* Remove unwanted activity
-* Navigate directly to relevant Facebook activity
+Find comments and interactions
 
-### X / Twitter
+Remove unwanted activity
 
-* Review your posts and replies
-* Find comments and interactions
-* Remove unwanted activity
-* Navigate directly to your profile and posts
+Navigate directly to your profile and posts
 
-### Reddit
-
-Coming soon.
-
+Reddit (Coming Soon)
 Planned Reddit cleanup includes:
 
-* Posts
-* Comments and replies
-* Saved content
-* Votes
-* Community subscriptions
-* Followed users
-* Profile information
+Posts
 
-## 🎯 Why ZeroTrace?
+Comments and replies
 
-Over the years, most people accumulate thousands of social-media interactions.
+Saved content
 
-Old posts, comments, replies, likes, and other activity can remain online long after you've forgotten about them.
+Votes
 
-ZeroTrace is designed to make that cleanup easier.
+Community subscriptions
 
-**Find it. Review it. Remove it.**
+Followed users
 
-## 🔒 Privacy First
+Profile information
 
-ZeroTrace is designed around the principle that your social-media activity should remain under your control.
+🎯 Why ZeroTrace Exists
+Most people accumulate thousands of social‑media interactions over the years. Old posts, comments, replies, likes, and other activity can remain online long after you've forgotten about them — and long after they stop representing who you are.
 
-ZeroTrace does **not** need your social-media passwords.
+ZeroTrace makes that cleanup easier.
 
-The extension works with your existing logged-in browser sessions rather than asking you to provide your credentials.
+Find it. Review it. Remove it.
 
-> ZeroTrace is intended to help you manage your own content and activity. It does not provide access to other people's private information or content.
+🔒 Privacy First
+ZeroTrace is designed around the principle that your social‑media activity should remain under your control.
 
-## 🧩 Supported Platforms
+ZeroTrace does not ask for your passwords
 
-| Platform    | Status            |
-| ----------- | ----------------- |
-| Facebook    | ✅ Available       |
-| X / Twitter | ✅ Available       |
-| Reddit      | 🚧 In development |
-| YouTube     | 🔜 Planned        |
-| Instagram   | 🔜 Planned        |
-| TikTok      | 🔜 Planned        |
-| LinkedIn    | 🔜 Planned        |
-| Threads     | 🔜 Planned        |
-| Bluesky     | 🔜 Planned        |
+ZeroTrace does not collect personal data
 
-Additional platforms may be added over time.
+ZeroTrace works entirely within your logged‑in browser session
 
-## 🛠️ Installation
+ZeroTrace only interacts with your own content
 
-### Development Installation
+ZeroTrace helps you manage your own activity. It does not access or manipulate other users’ private information.
 
-1. Clone or download this repository.
+🧩 Supported Platforms
+Platform	Status
+Facebook	✅ Available
+X / Twitter	✅ Available
+Reddit	🚧 In development
+YouTube	🔜 Planned
+Instagram	🔜 Planned
+TikTok	🔜 Planned
+LinkedIn	🔜 Planned
+Threads	🔜 Planned
+Bluesky	🔜 Planned
 
-2. Open Chrome.
 
-3. Navigate to:
+Additional platforms will be added over time.
 
-   `chrome://extensions`
+👤 Maintainer
+ZeroTrace is actively maintained by Jim McKins, who develops new features, maintains platform compatibility, and manages ongoing updates as Facebook, Twitter, and other platforms evolve.
+All development, architecture, and platform‑specific logic is maintained openly and transparently.
 
-4. Enable **Developer mode**.
+🌐 Open‑Source Impact
+Social platforms provide no effective tools for bulk deletion or privacy cleanup. ZeroTrace fills this gap by offering a transparent, open‑source alternative that:
 
-5. Click **Load unpacked**.
+empowers users to control their digital footprint
 
-6. Select the ZeroTrace project directory.
+improves privacy and security
 
-7. ZeroTrace will appear in your Chrome extensions.
+reduces exposure from old posts and interactions
 
-## 💻 Development
+supports creators, professionals, and everyday users
 
+provides a community‑maintained solution instead of fragile scripts or paid proprietary tools
+
+ZeroTrace contributes meaningful value to the privacy‑focused open‑source ecosystem.
+
+🤖 How Claude Helps Development
+Claude is used extensively in ZeroTrace’s development workflow, including:
+
+refactoring complex DOM‑interaction logic
+
+debugging deletion loops and race conditions
+
+designing persistent UI components
+
+generating documentation and user instructions
+
+planning multi‑platform support
+
+analyzing multi‑file extension architecture
+
+improving reliability across rapidly changing social‑media interfaces
+
+Claude directly accelerates development and helps maintain compatibility with fast‑changing platform markup.
+
+⚡ Why Claude Max 20× Matters
+ZeroTrace requires long reasoning sessions, multi‑file refactoring, and rapid iteration when platforms change their DOM structures. Claude Max 20× enables:
+
+faster debugging
+
+larger code‑context windows
+
+extended architectural planning
+
+full documentation generation
+
+quicker platform integrations
+
+more reliable updates for users
+
+Max 20× directly improves the pace and quality of ZeroTrace’s development.
+
+🛠️ Installation
+Development Installation
+Clone or download this repository.
+
+Open Chrome.
+
+Navigate to:
+chrome://extensions
+
+Enable Developer mode.
+
+Click Load unpacked.
+
+Select the ZeroTrace project directory.
+
+ZeroTrace will appear in your Chrome extensions.
+
+💻 Development
 ZeroTrace is a Chrome extension built with JavaScript, HTML, and CSS.
 
-### Project Structure
-
-```text
+Project Structure
+text
 ZeroTrace/
 ├── background.js
 ├── manifest.json
@@ -111,83 +162,89 @@ ZeroTrace/
 ├── icon48.png
 ├── icon128.png
 └── README.md
-```
+Platform‑specific functionality is organized into the platforms/ directory so additional social networks can be added without rewriting the core extension.
 
-Platform-specific functionality is organized into the `platforms/` directory so that additional social networks can be added without rewriting the core extension.
+🗺️ Roadmap
+Phase 1 — Core Platforms
+[x] Facebook
 
-## 🗺️ Roadmap
+[x] X / Twitter
 
-### Phase 1 — Core Platforms
+Phase 2 — High‑Value Cleanup
+[ ] Reddit
 
-* [x] Facebook
-* [x] X / Twitter
+[ ] YouTube
 
-### Phase 2 — High-Value Cleanup
+[ ] Instagram
 
-* [ ] Reddit
-* [ ] YouTube
-* [ ] Instagram
-* [ ] TikTok
-* [ ] LinkedIn
+[ ] TikTok
 
-### Phase 3 — Additional Platforms
+[ ] LinkedIn
 
-* [ ] Threads
-* [ ] Bluesky
-* [ ] Pinterest
-* [ ] Mastodon
-* [ ] Discord
-* [ ] Telegram
-* [ ] Truth Social
+Phase 3 — Additional Platforms
+[ ] Threads
 
-### Future Features
+[ ] Bluesky
 
-* Activity scanning
-* Activity counts
-* Date-based cleanup
-* Keyword filtering
-* Platform-specific cleanup rules
-* Review-before-delete mode
-* Bulk cleanup
-* Cleanup progress tracking
-* Cleanup history
-* Multi-platform dashboard
+[ ] Pinterest
 
-## ⚠️ Important
+[ ] Mastodon
 
-ZeroTrace is intended to help users manage **their own** social-media activity.
+[ ] Discord
+
+[ ] Telegram
+
+[ ] Truth Social
+
+Future Features
+Activity scanning
+
+Activity counts
+
+Date‑based cleanup
+
+Keyword filtering
+
+Platform‑specific cleanup rules
+
+Review‑before‑delete mode
+
+Bulk cleanup
+
+Cleanup progress tracking
+
+Cleanup history
+
+Multi‑platform dashboard
+
+⚠️ Important Notes
+ZeroTrace is intended to help users manage their own social‑media activity.
 
 Platform interfaces, APIs, policies, and terms of service can change. Automated actions may not be supported by every platform.
-
-ZeroTrace should respect the rules and technical limitations of each platform it supports.
-
 Users should review content before permanently deleting it.
 
-**Deleted content may not be recoverable.**
+Deleted content may not be recoverable.
 
-## 🤝 Contributing
-
+🤝 Contributing
 Contributions, bug reports, feature requests, and platform integrations are welcome.
 
 Before contributing a new platform, consider:
 
-1. What user activity can legitimately be managed?
-2. Does the platform provide an official API?
-3. Does the platform permit the proposed automation?
-4. What happens when content is deleted?
-5. Can the feature be implemented without collecting user credentials or unnecessary personal data?
+What user activity can legitimately be managed?
 
-## 📄 License
+Does the platform provide an official API?
 
+Does the platform permit the proposed automation?
+
+What happens when content is deleted?
+
+Can the feature be implemented without collecting user credentials or unnecessary personal data?
+
+📄 License
 License information will be added as the project develops.
 
----
-
-## ZeroTrace
-
-**Your digital history. Your choice.**
-
+ZeroTrace
+Your digital history. Your choice.  
 Find it.
 Review it.
 Remove it.
-
