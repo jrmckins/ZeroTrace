@@ -146,24 +146,7 @@ Select the ZeroTrace project directory.
 
 ZeroTrace will appear in your Chrome extensions.
 
-💻 Development
-ZeroTrace is a Chrome extension built with JavaScript, HTML, and CSS.
 
-Project Structure
-text
-ZeroTrace/
-├── background.js
-├── manifest.json
-├── popup.html
-├── popup.js
-├── platforms/
-│   ├── facebook.js
-│   └── twitter.js
-├── icon16.png
-├── icon48.png
-├── icon128.png
-└── README.md
-Platform‑specific functionality is organized into the platforms/ directory so additional social networks can be added without rewriting the core extension.
 
 🗺️ Roadmap
 Phase 1 — Core Platforms
