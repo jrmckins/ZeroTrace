@@ -992,6 +992,7 @@ async function executeCleanup(
     console.log(
       `[ZeroTrace] ${platform.name} cleanup script injected successfully.`
     );
+    console.log('[ZeroTrace] Waiting for Facebook cleanup script to report back...');
 
   } catch (error) {
 
