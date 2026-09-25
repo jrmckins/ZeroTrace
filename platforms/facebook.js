@@ -867,6 +867,21 @@ window.FacebookPlatform = window.FacebookPlatform || {
           return matches[0];
         }
 
+        function findHideFromProfile() {
+          const candidates = Array.from(
+            document.querySelectorAll(
+              '[role="menuitem"], [role="button"], button, div[tabindex="0"], span'
+            )
+          );
+
+          return candidates.find(element =>
+            isVisible(element) && (
+              normalizeText(element.textContent) === 'hide from profile' ||
+              normalizeText(element.getAttribute('aria-label')) === 'hide from profile'
+            )
+          ) || null;
+        }
+
         function findMoveConfirmation() {
           const dialogs = Array.from(
             document.querySelectorAll(
@@ -1119,6 +1134,23 @@ window.FacebookPlatform = window.FacebookPlatform || {
           return false;
         }
 
+        async function startTrashCleanup(reason) {
+          console.log(
+            `[ZeroTrace] Starting Facebook Trash cleanup after ${reason}.`
+          );
+
+          try {
+            await chrome.runtime.sendMessage({
+              type: 'startFacebookTrashCleanup'
+            });
+          } catch (error) {
+            console.error(
+              '[ZeroTrace] Could not start Facebook Trash cleanup:',
+              error
+            );
+          }
+        }
+
         while (
           !window.stopDeleting
         ) {
@@ -1142,6 +1174,10 @@ window.FacebookPlatform = window.FacebookPlatform || {
               noChangeCount >=
               maxNoChangeAttempts
             ) {
+              await startTrashCleanup(
+                'all visible posts were processed'
+              );
+
               await finishDeletion(
                 'No more Facebook posts found.'
               );
@@ -1191,9 +1227,17 @@ window.FacebookPlatform = window.FacebookPlatform || {
             }
           }
 
-          if (!moveToTrash) {
+          let menuAction = moveToTrash;
+          let actionIsHideFromProfile = false;
+
+          if (!menuAction) {
+            menuAction = findHideFromProfile();
+            actionIsHideFromProfile = !!menuAction;
+          }
+
+          if (!menuAction) {
             console.log(
-              'ZeroTrace: "Move to trash" was not found.'
+              'ZeroTrace: Neither "Move to trash" nor "Hide from profile" was found.'
             );
 
             try {
@@ -1215,57 +1259,61 @@ window.FacebookPlatform = window.FacebookPlatform || {
           }
 
           console.log(
-            'ZeroTrace: Clicking "Move to trash".'
+            actionIsHideFromProfile
+              ? 'ZeroTrace: "Move to trash" was unavailable; clicking "Hide from profile".'
+              : 'ZeroTrace: Clicking "Move to trash".'
           );
 
           if (
             !clickPostAction(
-              moveToTrash
+              menuAction
             )
           ) {
             console.log(
-              'ZeroTrace: Failed to click "Move to trash".'
+              `ZeroTrace: Failed to click "${actionIsHideFromProfile ? 'Hide from profile' : 'Move to trash'}".`
             );
 
             await wait(1000);
             continue;
           }
 
-          let confirmMove = null;
+          if (!actionIsHideFromProfile) {
+            let confirmMove = null;
 
-          for (
-            let attempt = 0;
-            attempt < 20 &&
-            !confirmMove;
-            attempt++
-          ) {
-            confirmMove = findMoveConfirmation();
+            for (
+              let attempt = 0;
+              attempt < 20 &&
+              !confirmMove;
+              attempt++
+            ) {
+              confirmMove = findMoveConfirmation();
+
+              if (!confirmMove) {
+                await wait(300);
+              }
+            }
 
             if (!confirmMove) {
-              await wait(300);
+              console.log(
+                'ZeroTrace: Facebook trash confirmation dialog or its "Move" button was not found.'
+              );
+
+              await wait(1000);
+              continue;
             }
-          }
 
-          if (!confirmMove) {
             console.log(
-              'ZeroTrace: Facebook trash confirmation dialog or its "Move" button was not found.'
+              'ZeroTrace: Confirming post trash by clicking "Move".'
             );
 
-            await wait(1000);
-            continue;
-          }
+            if (!clickPostAction(confirmMove)) {
+              console.log(
+                'ZeroTrace: Failed to click Facebook trash confirmation "Move" button.'
+              );
 
-          console.log(
-            'ZeroTrace: Confirming post trash by clicking "Move".'
-          );
-
-          if (!clickPostAction(confirmMove)) {
-            console.log(
-              'ZeroTrace: Failed to click Facebook trash confirmation "Move" button.'
-            );
-
-            await wait(1000);
-            continue;
+              await wait(1000);
+              continue;
+            }
           }
 
           console.log(
@@ -1316,8 +1364,22 @@ window.FacebookPlatform = window.FacebookPlatform || {
           await wait(800);
         }
 
-        alert(
-          `Deletion stopped. Completed ${deletedCount} Facebook posts.`
+        await startTrashCleanup(
+          'deletion was stopped'
+        );
+
+        updatePopup(
+          deletedCount,
+          true
+        );
+
+        await chrome.storage.local.set({
+          isDeleting: false,
+          deleteCounter: deletedCount
+        });
+
+        console.log(
+          `ZeroTrace: Deletion stopped. Completed ${deletedCount} Facebook posts.`
         );
       }
 
