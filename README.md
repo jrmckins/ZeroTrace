@@ -76,6 +76,7 @@ Additional platforms will be added over time.
 
 👤 Maintainer
 ZeroTrace is actively maintained by Jim McKinstry, who develops new features, maintains platform compatibility, and manages ongoing updates as Facebook, Twitter, and other platforms evolve.
+
 All development, architecture, and platform‑specific logic is maintained openly and transparently.
 
 🌐 Open‑Source Impact
@@ -90,6 +91,7 @@ reduces exposure from old posts and interactions
 supports creators, professionals, and everyday users
 
 provides a community‑maintained solution instead of fragile scripts or paid proprietary tools
+
 
 ZeroTrace contributes meaningful value to the privacy‑focused open‑source ecosystem.
 
@@ -135,8 +137,7 @@ Clone or download this repository.
 
 Open Chrome.
 
-Navigate to:
-chrome://extensions
+Navigate to: chrome://extensions
 
 Enable Developer mode.
 
@@ -146,7 +147,24 @@ Select the ZeroTrace project directory.
 
 ZeroTrace will appear in your Chrome extensions.
 
+💻 Development
+ZeroTrace is a Chrome extension built with JavaScript, HTML, and CSS.
 
+Project Structure
+Code
+ZeroTrace/
+├── background.js
+├── manifest.json
+├── popup.html
+├── popup.js
+├── platforms/
+│   ├── facebook.js
+│   └── twitter.js
+├── icon16.png
+├── icon48.png
+├── icon128.png
+└── README.md
+Platform‑specific functionality is organized into the platforms/ directory so additional social networks can be added without rewriting the core extension.
 
 🗺️ Roadmap
 Phase 1 — Core Platforms

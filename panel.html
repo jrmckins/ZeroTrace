@@ -394,6 +394,103 @@
     }
 
     /* ================================================================
+       PAYWALL MODAL
+       ================================================================ */
+
+    #zeroTracePaywallModal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.72);
+    }
+
+    .paywall-modal {
+      width: 100%;
+      max-width: 360px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    .paywall-title {
+      margin-bottom: 12px;
+      color: var(--text);
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .paywall-message {
+      margin-bottom: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .paywall-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .paywall-buy-button,
+    .paywall-cancel-button {
+      flex: 1;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition:
+        transform .1s ease,
+        opacity .15s ease,
+        filter .15s ease;
+    }
+
+    .paywall-buy-button {
+      border: 0;
+      background:
+        linear-gradient(
+          135deg,
+          #667eea,
+          #764ba2
+        );
+      color: white;
+      box-shadow:
+        0 8px 20px rgba(102, 126, 234, .2);
+    }
+
+    .paywall-buy-button:hover {
+      filter: brightness(1.08);
+    }
+
+    .paywall-cancel-button {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+    }
+
+    .paywall-cancel-button:hover {
+      border-color: #3b4a5e;
+      background: #1a2330;
+    }
+
+    .paywall-buy-button:active,
+    .paywall-cancel-button:active {
+      transform: scale(.99);
+    }
+
+    /* ================================================================
        UTILITIES
        ================================================================ */
 
@@ -627,7 +724,7 @@
   <script src="platforms/registry.js"></script>
   <script src="platforms/facebook.js"></script>
   <script src="platforms/twitter.js"></script>
-  <script src="panel.js"></script>
+  <script type="module" src="panel.js"></script>
 
 </body>
 
