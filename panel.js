@@ -451,6 +451,30 @@ async function checkCurrentPage() {
 // Navigation
 // ============================================================================
 
+async function waitForActivityPage(tabId, type, platform, timeout = 30000) {
+  const detection =
+    typeof platform.getPageDetection === 'function'
+      ? platform.getPageDetection()[type]
+      : null;
+  const started = Date.now();
+
+  while (Date.now() - started < timeout) {
+    const currentTab = await chrome.tabs.get(tabId);
+
+    if (
+      currentTab.status === 'complete' &&
+      currentTab.url &&
+      (detection ? detection(currentTab.url) : true)
+    ) {
+      return currentTab;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+
+  throw new Error(`Timed out waiting for ${platform.name} ${type} page to load`);
+}
+
 async function navigateToActivityPage(type) {
 
   const [tab] =
@@ -675,6 +699,53 @@ async function navigateToActivityPage(type) {
     }
   );
 
+  const openedPageNames = {
+    facebook: {
+      comments: 'Comments',
+      reactions: 'Reactions'
+    },
+    twitter: {
+      comments: 'Posts',
+      reactions: 'Likes',
+      replies: 'Replies',
+      reposts: 'Reposts'
+    }
+  };
+
+  const openedPageName =
+    openedPageNames[platform.id]?.[type];
+
+  if (openedPageName) {
+    try {
+      await waitForActivityPage(
+        tab.id,
+        type,
+        platform
+      );
+
+      await chrome.storage.local.set({
+        selectedType: type
+      });
+
+      showStatus(
+        `${platform.name} ${openedPageName} opened.`,
+        'success'
+      );
+    } catch (error) {
+
+      console.error(
+        `[ZeroTrace] Could not confirm ${platform.name} ${openedPageName} page load:`,
+        error
+      );
+
+      showStatus(
+        `Could not open ${platform.name} ${openedPageName}.`,
+        'error'
+      );
+      return;
+    }
+  }
+
   await chrome.storage.local.set({
     selectedType: type
   });
@@ -765,6 +836,7 @@ async function startDeletion() {
 
   if (
     !tab.url ||
+    tab.status !== 'complete' ||
     !onCorrectPage
   ) {
 
@@ -792,10 +864,14 @@ async function startDeletion() {
         'Reposts';
     }
 
-    showStatus(
-      `Please navigate to the ${pageName} page first using Step 3!`,
-      'error'
-    );
+    const prompt =
+      platform.id === 'facebook'
+        ? 'View your posts, comments, or reactions before deleting'
+        : platform.id === 'twitter'
+          ? 'View your posts, likes, replies, or reposts before deleting'
+          : `View your ${pageName} before deleting`;
+
+    alert(prompt);
 
     return;
   }
