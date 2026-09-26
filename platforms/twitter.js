@@ -28,6 +28,7 @@ const TwitterPlatform = {
           url.includes('/likes') ||
           url.includes('/with_replies') ||
           url.includes('/reposts') ||
+          url.includes('/media') ||
           url.includes('/profile')
         ),
 
@@ -86,7 +87,12 @@ const TwitterPlatform = {
       // X profile /reposts = Reposts page
       reposts: (url) =>
         isTwitter(url) &&
-        url.includes('/reposts')
+        url.includes('/reposts'),
+
+      // X profile /media = Videos
+      videos: (url) =>
+        isTwitter(url) &&
+        url.includes('/media')
 
     };
 
@@ -130,7 +136,9 @@ const TwitterPlatform = {
       reactions: null,
 
       replies: null,
-      reposts: null
+      reposts: null,
+
+      videos: null
 
     };
 
@@ -294,6 +302,10 @@ const TwitterPlatform = {
       result.reposts =
         `${profileUrl}/reposts`;
 
+      // X profile /media = Videos
+      result.videos =
+        `${profileUrl}/media`;
+
       console.log(
         '[ZeroTrace] X Posts URL:',
         result.comments
@@ -312,6 +324,11 @@ const TwitterPlatform = {
       console.log(
         '[ZeroTrace] X Reposts URL:',
         result.reposts
+      );
+
+      console.log(
+        '[ZeroTrace] X Videos URL:',
+        result.videos
       );
 
       return result;
@@ -340,7 +357,14 @@ const TwitterPlatform = {
 
     return async function(type, excludeOwnPosts) {
 
-      let deletedCount = 0;
+      const initialStorage = await chrome.storage.local.get([
+        'deleteCounter',
+        'unlimitedDeletion'
+      ]);
+
+      let deletedCount = initialStorage.deleteCounter || 0;
+      const unlimitedDeletion =
+        initialStorage.unlimitedDeletion === true;
 
       const sleep = (ms) =>
         new Promise(resolve =>
@@ -354,6 +378,23 @@ const TwitterPlatform = {
           );
 
         return state.isDeleting === true;
+      };
+
+      const stopAfterFreeItem = async () => {
+        if (unlimitedDeletion) return false;
+
+        await chrome.storage.local.set({
+          isDeleting: false,
+          deleteCounter: deletedCount
+        });
+
+        chrome.runtime.sendMessage({
+          type: 'finished',
+          count: deletedCount
+        }).catch(() => {});
+
+        alert(`Completed one free Twitter/X item. Deleted ${deletedCount} item(s). Stopping.`);
+        return true;
       };
 
       // ----------------------------------------------------------------------
@@ -528,6 +569,10 @@ const TwitterPlatform = {
 
               await sleep(1500);
 
+              if (await stopAfterFreeItem()) {
+                return;
+              }
+
               break;
 
             } catch (err) {
@@ -643,6 +688,10 @@ const TwitterPlatform = {
               }).catch(() => {});
 
               await sleep(1000);
+
+              if (await stopAfterFreeItem()) {
+                return;
+              }
 
               break;
 
@@ -771,6 +820,10 @@ const TwitterPlatform = {
               }).catch(() => {});
 
               await sleep(1200);
+
+              if (await stopAfterFreeItem()) {
+                return;
+              }
 
               break;
 

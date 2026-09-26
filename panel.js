@@ -3,7 +3,10 @@
  * Uses modular platform architecture for Facebook and Twitter/X.
  */
 
-import { verifyAndTrackUsage } from './usageChecker.bundle.js';
+import {
+  getUserCredentials,
+  verifyAndTrackUsage
+} from './usageChecker.bundle.js';
 
 let currentPlatform = 'facebook';
 
@@ -122,11 +125,70 @@ function showPaywallModal() {
     .addEventListener(
       'click',
       () => {
+        // Open synchronously from the click so the browser allows the tab.
+        const purchaseTab =
+          window.open('about:blank', '_blank');
 
-        window.open(
-          'https://dockerplaybooks.dpdns.org/ZeroTrace/',
-          '_blank'
-        );
+        if (!purchaseTab) {
+          showStatus(
+            'Allow popups to open the purchase page.',
+            'error'
+          );
+          return;
+        }
+
+        getUserCredentials()
+          .then(async ({ userId, userSecret }) => {
+            const response = await fetch(
+              'https://dockerplaybooks.dpdns.org/api/handoff/create',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                credentials: 'omit',
+                body: JSON.stringify({
+                  user_id: userId,
+                  user_secret: userSecret
+                })
+              }
+            );
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+              throw new Error(
+                result.error || `Handoff request failed (${response.status})`
+              );
+            }
+
+            if (typeof result.code !== 'string' || !result.code) {
+              throw new Error('Handoff response did not include a code');
+            }
+
+            const purchaseUrl = new URL(
+              'https://dockerplaybooks.dpdns.org/ZeroTrace/'
+            );
+            // Put the short-lived code in the fragment so it is not sent in
+            // the initial page request or written to ordinary access logs.
+            purchaseUrl.hash = new URLSearchParams({
+              handoff_code: result.code
+            }).toString();
+            purchaseTab.location.replace(purchaseUrl.toString());
+          })
+          .catch(error => {
+            console.error(
+              '[ZeroTrace] Could not create the website handoff:',
+              error
+            );
+            purchaseTab.close();
+            showStatus(
+              error.message.includes('(404)')
+                ? 'The purchase server has not been updated yet. Please try again after its handoff API is deployed.'
+                : 'Could not securely open the purchase page. Please try again.',
+              'error'
+            );
+          });
 
         overlay.remove();
       }
@@ -213,6 +275,9 @@ function updatePlatformUI() {
   const repostsButton =
     document.getElementById('navigateReposts');
 
+  const videosButton =
+    document.getElementById('navigateVideos');
+
   const navigationNote =
     document.getElementById('navigationNote');
 
@@ -253,6 +318,10 @@ function updatePlatformUI() {
       repostsButton.classList.remove(
         'hidden'
       );
+    }
+
+    if (videosButton) {
+      videosButton.classList.remove('hidden');
     }
 
     if (navigationNote) {
@@ -298,6 +367,10 @@ function updatePlatformUI() {
       repostsButton.classList.add(
         'hidden'
       );
+    }
+
+    if (videosButton) {
+      videosButton.classList.add('hidden');
     }
 
     if (navigationNote) {
@@ -421,6 +494,16 @@ async function checkCurrentPage() {
     );
 
   } else if (
+    detection.videos &&
+    detection.videos(tab.url)
+  ) {
+
+    showPageStatus(
+      `✓ You are on the ${platform.name} Videos page`,
+      true
+    );
+
+  } else if (
     detection.anyActivity(tab.url)
   ) {
 
@@ -473,6 +556,38 @@ async function waitForActivityPage(tabId, type, platform, timeout = 30000) {
   }
 
   throw new Error(`Timed out waiting for ${platform.name} ${type} page to load`);
+}
+
+async function twitterHasNoReposts(tabId) {
+  const [pageState] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const pageText = (document.body?.innerText || '')
+        .replace(/[’‘]/g, "'")
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+
+      return pageText.includes("you haven't reposted yet");
+    }
+  });
+
+  return pageState?.result === true;
+}
+
+async function twitterHasNoVideos(tabId) {
+  const [pageState] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const pageText = (document.body?.innerText || '')
+        .replace(/[’‘]/g, "'")
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+
+      return pageText.includes("you haven't posted videos yet");
+    }
+  });
+
+  return pageState?.result === true;
 }
 
 async function navigateToActivityPage(type) {
@@ -680,6 +795,11 @@ async function navigateToActivityPage(type) {
 
       navigationMessage =
         'Navigating to your Twitter Reposts';
+
+    } else if (type === 'videos') {
+
+      navigationMessage =
+        'Navigating to your Twitter Videos';
     }
   }
 
@@ -708,7 +828,8 @@ async function navigateToActivityPage(type) {
       comments: 'Posts',
       reactions: 'Likes',
       replies: 'Replies',
-      reposts: 'Reposts'
+      reposts: 'Reposts',
+      videos: 'Videos'
     }
   };
 
@@ -722,6 +843,30 @@ async function navigateToActivityPage(type) {
         type,
         platform
       );
+
+      if (platform.id === 'twitter' && type === 'reposts') {
+        try {
+          if (await twitterHasNoReposts(tab.id)) {
+            await chrome.storage.local.set({ selectedType: type });
+            showStatus('You haven’t reposted yet', 'info');
+            return;
+          }
+        } catch (error) {
+          console.error('[ZeroTrace] Could not check the X reposts page:', error);
+        }
+      }
+
+      if (platform.id === 'twitter' && type === 'videos') {
+        try {
+          if (await twitterHasNoVideos(tab.id)) {
+            await chrome.storage.local.set({ selectedType: type });
+            showStatus('You haven’t posted videos yet', 'info');
+            return;
+          }
+        } catch (error) {
+          console.error('[ZeroTrace] Could not check the X Videos page:', error);
+        }
+      }
 
       await chrome.storage.local.set({
         selectedType: type
@@ -832,6 +977,12 @@ async function startDeletion() {
     onCorrectPage =
       detection.reposts &&
       detection.reposts(tab.url);
+
+  } else if (type === 'videos') {
+
+    onCorrectPage =
+      detection.videos &&
+      detection.videos(tab.url);
   }
 
   if (
@@ -862,13 +1013,18 @@ async function startDeletion() {
 
       pageName =
         'Reposts';
+
+    } else if (type === 'videos') {
+
+      pageName =
+        'Videos';
     }
 
     const prompt =
       platform.id === 'facebook'
         ? 'View your posts, comments, or reactions before deleting'
         : platform.id === 'twitter'
-          ? 'View your posts, likes, replies, or reposts before deleting'
+          ? 'View your posts, likes, replies, reposts, or videos before deleting'
           : `View your ${pageName} before deleting`;
 
     alert(prompt);
@@ -876,8 +1032,52 @@ async function startDeletion() {
     return;
   }
 
+  // An empty X reposts page must not consume the user's xreposts allowance.
+  // Check this before verifyAndTrackUsage(), which records the option as used.
+  if (platform.id === 'twitter' && type === 'reposts') {
+    try {
+      if (await twitterHasNoReposts(tab.id)) {
+        showStatus('You haven’t reposted yet', 'info');
+        return;
+      }
+    } catch (error) {
+      console.error('[ZeroTrace] Could not check the X reposts page:', error);
+      showStatus('Could not check the Reposts page. Please try again.', 'error');
+      return;
+    }
+  }
+
+  // An empty X Videos page must not consume the user's xvideos allowance.
+  if (platform.id === 'twitter' && type === 'videos') {
+    try {
+      if (await twitterHasNoVideos(tab.id)) {
+        showStatus('You haven’t posted videos yet', 'info');
+        return;
+      }
+    } catch (error) {
+      console.error('[ZeroTrace] Could not check the X Videos page:', error);
+      showStatus('Could not check the Videos page. Please try again.', 'error');
+      return;
+    }
+  }
+
+  // Keep platform-specific usage counters separate. Twitter's posts page is
+  // still represented internally by the legacy `comments` activity type.
+  const twitterUsageOptions = {
+    posts: 'xposts',
+    comments: 'xposts',
+    reactions: 'xlikes',
+    replies: 'xreplies',
+    reposts: 'xreposts',
+    videos: 'xvideos'
+  };
+  const usageOptionKey =
+    platform.id === 'twitter'
+      ? twitterUsageOptions[type] || `x${type}`
+      : type;
+
   const usageResult =
-    await verifyAndTrackUsage(type);
+    await verifyAndTrackUsage(usageOptionKey);
 
   console.log(
     '[ZeroTrace] Usage verification result:',
@@ -892,6 +1092,24 @@ async function startDeletion() {
     ) {
 
       showPaywallModal();
+
+    } else if (
+      usageResult.reason === 'invalid_user_secret'
+    ) {
+
+      showStatus(
+        'This saved account needs one-time secure enrollment before it can be used. Contact ZeroTrace support.',
+        'error'
+      );
+
+    } else if (
+      usageResult.reason === 'backend_not_configured'
+    ) {
+
+      showStatus(
+        'Supabase is missing the secure usage function. Apply migration 202609250001_secure_extension_handoff.sql in the Supabase SQL Editor.',
+        'error'
+      );
 
     } else {
 
@@ -1270,6 +1488,23 @@ function setupEventListeners() {
           'reposts'
         );
 
+      }
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Videos navigation
+  // --------------------------------------------------------------------------
+
+  const videosButton =
+    document.getElementById('navigateVideos');
+
+  if (videosButton) {
+    videosButton.addEventListener(
+      'click',
+      async () => {
+        hidePageStatus();
+        await navigateToActivityPage('videos');
       }
     );
   }

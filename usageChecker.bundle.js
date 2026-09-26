@@ -20767,28 +20767,28 @@ var supabase = createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
-function getUserId() {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(["zeroTraceUserId"], async (result) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-        return;
-      }
-      if (result.zeroTraceUserId) {
-        resolve(result.zeroTraceUserId);
-        return;
-      }
-      const userId = crypto.randomUUID();
-      await chrome.storage.local.set({
-        zeroTraceUserId: userId
-      });
-      resolve(userId);
+function createUserSecret() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+async function getUserCredentials() {
+  const result = await chrome.storage.local.get([
+    "zeroTraceUserId",
+    "zeroTraceUserSecret"
+  ]);
+  const userId = result.zeroTraceUserId || crypto.randomUUID();
+  const userSecret = result.zeroTraceUserSecret || createUserSecret();
+  if (!result.zeroTraceUserId || !result.zeroTraceUserSecret) {
+    await chrome.storage.local.set({
+      zeroTraceUserId: userId,
+      zeroTraceUserSecret: userSecret
     });
-  });
+  }
+  return { userId, userSecret };
 }
 async function verifyAndTrackUsage(optionKey) {
   try {
-    const userId = await getUserId();
+    const { userId, userSecret } = await getUserCredentials();
     console.log("[ZeroTrace] Checking usage:", {
       userId,
       optionKey
@@ -20797,6 +20797,7 @@ async function verifyAndTrackUsage(optionKey) {
       "check_and_track_usage",
       {
         p_user_id: userId,
+        p_user_secret: userSecret,
         p_option_key: optionKey
       }
     );
@@ -20804,7 +20805,7 @@ async function verifyAndTrackUsage(optionKey) {
       console.error("[ZeroTrace] Usage check failed:", error);
       return {
         allowed: false,
-        reason: "db_error"
+        reason: error.code === "PGRST202" || error.code === "42883" ? "backend_not_configured" : "db_error"
       };
     }
     console.log(
@@ -20824,5 +20825,6 @@ async function verifyAndTrackUsage(optionKey) {
   }
 }
 export {
+  getUserCredentials,
   verifyAndTrackUsage
 };

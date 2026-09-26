@@ -11,33 +11,37 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-function getUserId() {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['zeroTraceUserId'], async (result) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-        return;
-      }
+function createUserSecret() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
 
-      if (result.zeroTraceUserId) {
-        resolve(result.zeroTraceUserId);
-        return;
-      }
+export async function getUserCredentials() {
+  const result = await chrome.storage.local.get([
+    'zeroTraceUserId',
+    'zeroTraceUserSecret'
+  ]);
 
-      const userId = crypto.randomUUID();
+  const userId = result.zeroTraceUserId || crypto.randomUUID();
+  const userSecret =
+    result.zeroTraceUserSecret || createUserSecret();
 
-      await chrome.storage.local.set({
-        zeroTraceUserId: userId
-      });
-
-      resolve(userId);
+  if (
+    !result.zeroTraceUserId ||
+    !result.zeroTraceUserSecret
+  ) {
+    await chrome.storage.local.set({
+      zeroTraceUserId: userId,
+      zeroTraceUserSecret: userSecret
     });
-  });
+  }
+
+  return { userId, userSecret };
 }
 
 export async function verifyAndTrackUsage(optionKey) {
   try {
-    const userId = await getUserId();
+    const { userId, userSecret } = await getUserCredentials();
 
     console.log('[ZeroTrace] Checking usage:', {
       userId,
@@ -52,6 +56,7 @@ export async function verifyAndTrackUsage(optionKey) {
       'check_and_track_usage',
       {
         p_user_id: userId,
+        p_user_secret: userSecret,
         p_option_key: optionKey
       }
     );
@@ -61,7 +66,10 @@ export async function verifyAndTrackUsage(optionKey) {
 
       return {
         allowed: false,
-        reason: 'db_error'
+        reason:
+          error.code === 'PGRST202' || error.code === '42883'
+            ? 'backend_not_configured'
+            : 'db_error'
       };
     }
 

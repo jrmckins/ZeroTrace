@@ -16,7 +16,8 @@
     "https://www.facebook.com/*",
     "https://facebook.com/*",
     "https://twitter.com/*",
-    "https://x.com/*"
+    "https://x.com/*",
+    "https://dockerplaybooks.dpdns.org/*"
   ],
 
   "action": {
