@@ -4,8 +4,10 @@
  */
 
 import {
+  createRecoveryCode,
   getPaidStatus,
   getUserCredentials,
+  recoverUserAccount,
   verifyAndTrackUsage
 } from './usageChecker.bundle.js';
 
@@ -111,13 +113,31 @@ async function openPurchaseSite() {
 
 async function refreshBuyNowVisibility() {
   const button = document.getElementById('buyNowButton');
-  if (!button) return;
+  const restoreButton = document.getElementById('restoreAccountToggle');
+  const recoveryButton = document.getElementById('generateRecoveryCodeButton');
+  if (!button || !restoreButton || !recoveryButton) return;
 
   button.classList.add('hidden');
+  restoreButton.classList.add('hidden');
+  recoveryButton.classList.add('hidden');
   const status = await getPaidStatus();
-  if (status.valid && !status.paid) {
-    button.classList.remove('hidden');
+  if (status.valid) {
+    if (status.paid) {
+      recoveryButton.classList.remove('hidden');
+    } else {
+      button.classList.remove('hidden');
+      restoreButton.classList.remove('hidden');
+    }
   }
+}
+
+function formatRecoveryCode(code) {
+  return String(code).match(/.{1,8}/g).join('-').toUpperCase();
+}
+
+function showRecoveryCode(code) {
+  document.getElementById('recoveryCodeValue').textContent = formatRecoveryCode(code);
+  document.getElementById('recoveryCodePanel').classList.remove('hidden');
 }
 
 function showPaywallModal() {
@@ -1340,6 +1360,63 @@ function setupEventListeners() {
   if (buyNowButton) {
     buyNowButton.addEventListener('click', openPurchaseSite);
   }
+
+  const restoreToggle = document.getElementById('restoreAccountToggle');
+  const restorePanel = document.getElementById('restoreAccountPanel');
+  const restoreInput = document.getElementById('recoveryCodeInput');
+  const restoreMessage = document.getElementById('restoreAccountMessage');
+  const restoreSubmit = document.getElementById('restoreAccountSubmit');
+  document.getElementById('closeRestoreAccount')?.addEventListener('click', () => {
+    restorePanel.classList.add('hidden');
+  });
+  document.getElementById('closeRecoveryCode')?.addEventListener('click', () => {
+    document.getElementById('recoveryCodePanel').classList.add('hidden');
+  });
+  restoreToggle?.addEventListener('click', () => {
+    restorePanel.classList.toggle('hidden');
+    restoreMessage.textContent = '';
+    if (!restorePanel.classList.contains('hidden')) restoreInput.focus();
+  });
+
+  restoreSubmit?.addEventListener('click', async () => {
+    restoreSubmit.disabled = true;
+    restoreMessage.textContent = 'Restoring your account…';
+    try {
+      const restored = await recoverUserAccount(restoreInput.value);
+      restoreInput.value = '';
+      restoreMessage.textContent = `Account restored (${restored.userId}). Save your new recovery code below.`;
+      showRecoveryCode(restored.recoveryCode);
+      await refreshBuyNowVisibility();
+    } catch (error) {
+      restoreMessage.textContent = error.message;
+    } finally {
+      restoreSubmit.disabled = false;
+    }
+  });
+
+  document.getElementById('generateRecoveryCodeButton')?.addEventListener('click', async () => {
+    const button = document.getElementById('generateRecoveryCodeButton');
+    button.disabled = true;
+    try {
+      const code = await createRecoveryCode();
+      showRecoveryCode(code);
+    } catch (error) {
+      showStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.getElementById('copyRecoveryCodeButton')?.addEventListener('click', async () => {
+    const code = document.getElementById('recoveryCodeValue').textContent;
+    try {
+      await navigator.clipboard.writeText(code);
+      document.getElementById('copyRecoveryCodeButton').textContent = 'Copied';
+    } catch (error) {
+      console.warn('[ZeroTrace] Clipboard copy failed:', error);
+      document.getElementById('copyRecoveryCodeButton').textContent = 'Select and copy the code above';
+    }
+  });
 
   // --------------------------------------------------------------------------
   // Platform selector

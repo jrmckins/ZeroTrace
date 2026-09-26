@@ -65,6 +65,60 @@ export async function getPaidStatus() {
   }
 }
 
+export async function recoverUserAccount(recoveryCode) {
+  const { userSecret } = await getUserCredentials();
+  const normalizedCode = String(recoveryCode || '')
+    .trim()
+    .replace(/[^a-f0-9]/gi, '')
+    .toLowerCase();
+  if (!/^[a-f0-9]{48}$/.test(normalizedCode)) {
+    throw new Error('Enter the 48-character recovery code.');
+  }
+
+  const { data, error } = await supabase.rpc(
+    'recover_user_account',
+    {
+      p_recovery_code: normalizedCode,
+      p_new_user_secret: userSecret
+    }
+  );
+  if (error) {
+    console.error('[ZeroTrace] Account recovery failed:', error);
+    throw new Error('Could not restore the account. Check the code and try again.');
+  }
+  if (!data?.user_id || !data?.recovery_code) {
+    throw new Error('That recovery code is invalid, expired, or already used.');
+  }
+
+  await chrome.storage.local.set({
+    zeroTraceUserId: data.user_id,
+    zeroTraceUserSecret: userSecret
+  });
+  return {
+    userId: data.user_id,
+    recoveryCode: data.recovery_code
+  };
+}
+
+export async function createRecoveryCode() {
+  const { userId, userSecret } = await getUserCredentials();
+  const { data, error } = await supabase.rpc(
+    'issue_user_recovery_code',
+    {
+      p_user_id: userId,
+      p_user_secret: userSecret
+    }
+  );
+  if (error) {
+    console.error('[ZeroTrace] Could not create a recovery code:', error);
+    throw new Error('Could not create a recovery code. Please try again.');
+  }
+  if (typeof data !== 'string' || !/^[a-f0-9]{48}$/.test(data)) {
+    throw new Error('A recovery code is available only for paid accounts.');
+  }
+  return data;
+}
+
 export async function verifyAndTrackUsage(optionKey) {
   try {
     const { userId, userSecret } = await getUserCredentials();
