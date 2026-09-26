@@ -17,7 +17,8 @@
     "https://facebook.com/*",
     "https://twitter.com/*",
     "https://x.com/*",
-    "https://dockerplaybooks.dpdns.org/*"
+    "https://dockerplaybooks.dpdns.org/*",
+    "https://igdetmlslqlecfcexhqm.supabase.co/*"
   ],
 
   "action": {

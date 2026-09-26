@@ -4,6 +4,7 @@
  */
 
 import {
+  getPaidStatus,
   getUserCredentials,
   verifyAndTrackUsage
 } from './usageChecker.bundle.js';
@@ -63,6 +64,61 @@ function hidePageStatus() {
 // ============================================================================
 // Paywall Modal
 // ============================================================================
+
+async function openPurchaseSite() {
+  // Open synchronously from the click so the browser allows the tab.
+  const purchaseTab = window.open('about:blank', '_blank');
+
+  if (!purchaseTab) {
+    showStatus('Allow popups to open the purchase page.', 'error');
+    return;
+  }
+
+  try {
+    const { userId, userSecret } = await getUserCredentials();
+    const response = await fetch(
+      'https://dockerplaybooks.dpdns.org/api/handoff/create',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        body: JSON.stringify({ user_id: userId, user_secret: userSecret })
+      }
+    );
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(result.error || `Handoff request failed (${response.status})`);
+    }
+    if (typeof result.code !== 'string' || !result.code) {
+      throw new Error('Handoff response did not include a code');
+    }
+
+    const purchaseUrl = new URL('https://dockerplaybooks.dpdns.org/ZeroTrace/');
+    purchaseUrl.hash = new URLSearchParams({ handoff_code: result.code }).toString();
+    purchaseTab.location.replace(purchaseUrl.toString());
+  } catch (error) {
+    console.error('[ZeroTrace] Could not create the website handoff:', error);
+    purchaseTab.close();
+    showStatus(
+      error.message.includes('(404)')
+        ? 'The purchase server has not been updated yet. Please try again later.'
+        : error.message || 'Could not securely open the purchase page. Please try again.',
+      'error'
+    );
+  }
+}
+
+async function refreshBuyNowVisibility() {
+  const button = document.getElementById('buyNowButton');
+  if (!button) return;
+
+  button.classList.add('hidden');
+  const status = await getPaidStatus();
+  if (status.valid && !status.paid) {
+    button.classList.remove('hidden');
+  }
+}
 
 function showPaywallModal() {
 
@@ -125,71 +181,7 @@ function showPaywallModal() {
     .addEventListener(
       'click',
       () => {
-        // Open synchronously from the click so the browser allows the tab.
-        const purchaseTab =
-          window.open('about:blank', '_blank');
-
-        if (!purchaseTab) {
-          showStatus(
-            'Allow popups to open the purchase page.',
-            'error'
-          );
-          return;
-        }
-
-        getUserCredentials()
-          .then(async ({ userId, userSecret }) => {
-            const response = await fetch(
-              'https://dockerplaybooks.dpdns.org/api/handoff/create',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                credentials: 'omit',
-                body: JSON.stringify({
-                  user_id: userId,
-                  user_secret: userSecret
-                })
-              }
-            );
-
-            const result = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-              throw new Error(
-                result.error || `Handoff request failed (${response.status})`
-              );
-            }
-
-            if (typeof result.code !== 'string' || !result.code) {
-              throw new Error('Handoff response did not include a code');
-            }
-
-            const purchaseUrl = new URL(
-              'https://dockerplaybooks.dpdns.org/ZeroTrace/'
-            );
-            // Put the short-lived code in the fragment so it is not sent in
-            // the initial page request or written to ordinary access logs.
-            purchaseUrl.hash = new URLSearchParams({
-              handoff_code: result.code
-            }).toString();
-            purchaseTab.location.replace(purchaseUrl.toString());
-          })
-          .catch(error => {
-            console.error(
-              '[ZeroTrace] Could not create the website handoff:',
-              error
-            );
-            purchaseTab.close();
-            showStatus(
-              error.message.includes('(404)')
-                ? 'The purchase server has not been updated yet. Please try again after its handoff API is deployed.'
-                : 'Could not securely open the purchase page. Please try again.',
-              'error'
-            );
-          });
-
+        openPurchaseSite();
         overlay.remove();
       }
     );
@@ -1344,6 +1336,11 @@ chrome.runtime.onMessage.addListener(
 
 function setupEventListeners() {
 
+  const buyNowButton = document.getElementById('buyNowButton');
+  if (buyNowButton) {
+    buyNowButton.addEventListener('click', openPurchaseSite);
+  }
+
   // --------------------------------------------------------------------------
   // Platform selector
   // --------------------------------------------------------------------------
@@ -1634,9 +1631,17 @@ async function initialize() {
 
     await restoreState();
 
+    await refreshBuyNowVisibility();
+
     await checkCurrentPage();
 
     setupEventListeners();
+
+    window.addEventListener('focus', refreshBuyNowVisibility);
+    window.setInterval(refreshBuyNowVisibility, 30000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshBuyNowVisibility();
+    });
 
     console.log(
       '[ZeroTrace] Popup initialized.'

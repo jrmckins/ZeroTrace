@@ -20786,6 +20786,29 @@ async function getUserCredentials() {
   }
   return { userId, userSecret };
 }
+async function getPaidStatus() {
+  try {
+    const { userId, userSecret } = await getUserCredentials();
+    const { data, error } = await supabase.rpc(
+      "get_user_paid_status",
+      {
+        p_user_id: userId,
+        p_user_secret: userSecret
+      }
+    );
+    if (error) {
+      console.error("[ZeroTrace] Could not load paid status:", error);
+      return { valid: false, paid: false };
+    }
+    return {
+      valid: data?.valid === true,
+      paid: data?.is_paid === true
+    };
+  } catch (error) {
+    console.error("[ZeroTrace] Paid status check failed:", error);
+    return { valid: false, paid: false };
+  }
+}
 async function verifyAndTrackUsage(optionKey) {
   try {
     const { userId, userSecret } = await getUserCredentials();
@@ -20825,6 +20848,7 @@ async function verifyAndTrackUsage(optionKey) {
   }
 }
 export {
+  getPaidStatus,
   getUserCredentials,
   verifyAndTrackUsage
 };
